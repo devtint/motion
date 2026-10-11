@@ -1,0 +1,427 @@
+/* ==========================================================================
+   Motion kit CSS. Synced into each video by `node kit.mjs sync video.html`.
+   Do not edit inside a video: put overrides in the video's own <style>.
+   Units: everything in cqw (1cqw = 1% of stage width).
+   Timing: --d = start (s from scene start), --dur on .scene is set by the engine.
+   ========================================================================== */
+
+/* ---------- 1. Palettes (choose with <html data-palette="...">) ---------- */
+:root, [data-palette="studio"]{
+  --bg:#ECE8E1; --surface:#F4E8E1; --stage:#ECE8E1; --ink:#1E1E1E; --muted:#6F675F; --line:#1E1E1E;
+  --accent:#C86A58; --accent-2:#3D6A8C; --on-accent:#FFFFFF; --tint:#F7E3DC;
+  --good:#3D7A5A; --good-bg:#E2EDE5; --bad:#B54334; --bad-bg:#FCE8E6; --warn:#C98A1B;
+  --serif:'Newsreader', Georgia, serif; --sans:'Inter', system-ui, 'Segoe UI', sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace; --display:var(--serif);
+  --radius:1.4cqw; --shadow:0 .5cqw 1.6cqw rgba(30,30,30,.12);
+}
+[data-palette="fintech"]{
+  --bg:#EDF0F3; --surface:#FFFFFF; --stage:#F8FAFB; --ink:#15202B; --muted:#566574; --line:#D3DAE1;
+  --accent:#F26A1B; --accent-2:#2563EB; --on-accent:#FFFFFF; --tint:#FDE9DC;
+  --good:#17794F; --good-bg:#DDF3E8; --bad:#B83A3A; --bad-bg:#FBE4E4; --display:var(--sans);
+}
+[data-palette="cyber"]{
+  --bg:#0B0F19; --surface:#111827; --stage:#0F172A; --ink:#F8FAFC; --muted:#94A3B8; --line:#1E293B;
+  --accent:#38BDF8; --accent-2:#A78BFA; --on-accent:#0F172A; --tint:#0C4A6E;
+  --good:#34D399; --good-bg:#064E3B; --bad:#F87171; --bad-bg:#7F1D1D; --display:var(--sans);
+  --shadow:0 .5cqw 2cqw rgba(0,0,0,.5);
+}
+[data-palette="emerald"]{
+  --bg:#F0FDF4; --surface:#FFFFFF; --stage:#F7FEE7; --ink:#064E3B; --muted:#047857; --line:#BBF7D0;
+  --accent:#10B981; --accent-2:#0EA5E9; --on-accent:#FFFFFF; --tint:#D1FAE5;
+  --good:#059669; --good-bg:#ECFDF5; --bad:#E11D48; --bad-bg:#FFE4E6; --display:var(--sans);
+}
+[data-palette="mono"]{
+  --bg:#FAFAFA; --surface:#FFFFFF; --stage:#F4F4F5; --ink:#18181B; --muted:#71717A; --line:#E4E4E7;
+  --accent:#18181B; --accent-2:#71717A; --on-accent:#FFFFFF; --tint:#E4E4E7;
+  --good:#16A34A; --good-bg:#DCFCE7; --bad:#DC2626; --bad-bg:#FEE2E2; --display:var(--sans);
+}
+[data-palette="neon"]{
+  --bg:#050505; --surface:#0F0F14; --stage:#08080B; --ink:#F5F5F7; --muted:#8B8B9A; --line:#26262E;
+  --accent:#EC4899; --accent-2:#06B6D4; --on-accent:#050505; --tint:#3B0A26;
+  --good:#22D3EE; --good-bg:#083344; --bad:#F43F5E; --bad-bg:#4C0519; --display:var(--sans);
+  --shadow:0 0 2cqw rgba(236,72,153,.25);
+}
+
+/* ---------- 2. Player, stage, scenes ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)}
+.player{max-width:1100px;margin:24px auto;padding:0 16px}
+.stage{position:relative;aspect-ratio:16/9;container-type:inline-size;overflow:hidden;
+       background:var(--stage);border:1px solid var(--line);border-radius:14px;color:var(--ink)}
+.scene{position:absolute;inset:0;display:none;padding:4cqw 5cqw;
+       flex-direction:column;justify-content:center;align-items:center;gap:2cqw;text-align:center}
+.scene.active{display:flex}
+.row{display:flex;align-items:center;justify-content:center;gap:2cqw}
+.col{display:flex;flex-direction:column;align-items:center;gap:1.2cqw}
+.abs{position:absolute}
+.layer{position:absolute;inset:0;pointer-events:none}
+
+/* Scene transitions: <section class="scene" data-in="fade" data-out="left" style="--tr:.5s"> */
+.scene{--in:none;--out:none;--tr:.45s}
+.scene[data-in="fade"]{--in:tr-fade}    .scene[data-out="fade"]{--out:tr-fade-out}
+.scene[data-in="up"]{--in:tr-up}        .scene[data-out="up"]{--out:tr-up-out}
+.scene[data-in="left"]{--in:tr-left}    .scene[data-out="left"]{--out:tr-left-out}
+.scene[data-in="right"]{--in:tr-right}  .scene[data-out="right"]{--out:tr-right-out}
+.scene[data-in="zoom"]{--in:tr-zoom}    .scene[data-out="zoom"]{--out:tr-zoom-out}
+.scene[data-in="blur"]{--in:tr-blur}    .scene[data-out="blur"]{--out:tr-blur-out}
+.scene[data-in="wipe"]{--in:tr-wipe}    .scene[data-out="wipe"]{--out:tr-wipe-out}
+.scene.active{animation:var(--in) var(--tr) both cubic-bezier(.2,.7,.2,1),
+                        var(--out) var(--tr) calc(var(--dur,99s) - var(--tr)) forwards cubic-bezier(.5,0,.75,0)}
+@keyframes tr-fade{from{opacity:0}}                          @keyframes tr-fade-out{to{opacity:0}}
+@keyframes tr-up{from{opacity:0;transform:translateY(6cqw)}}  @keyframes tr-up-out{to{opacity:0;transform:translateY(-6cqw)}}
+@keyframes tr-left{from{opacity:0;transform:translateX(10cqw)}} @keyframes tr-left-out{to{opacity:0;transform:translateX(-10cqw)}}
+@keyframes tr-right{from{opacity:0;transform:translateX(-10cqw)}} @keyframes tr-right-out{to{opacity:0;transform:translateX(10cqw)}}
+@keyframes tr-zoom{from{opacity:0;transform:scale(1.08)}}     @keyframes tr-zoom-out{to{opacity:0;transform:scale(.94)}}
+@keyframes tr-blur{from{opacity:0;filter:blur(1.5cqw)}}       @keyframes tr-blur-out{to{opacity:0;filter:blur(1.5cqw)}}
+@keyframes tr-wipe{from{clip-path:inset(0 100% 0 0)}}         @keyframes tr-wipe-out{to{clip-path:inset(0 0 0 100%)}}
+
+/* ---------- 3. Entrances (class + style="--d:.4s") ----------
+   Only `from` is defined: the resting markup IS the end state.            */
+@keyframes k-rise{from{opacity:0;transform:translateY(2cqw)}}
+@keyframes k-drop{from{opacity:0;transform:translateY(-2cqw)}}
+@keyframes k-left{from{opacity:0;transform:translateX(-4cqw)}}
+@keyframes k-right{from{opacity:0;transform:translateX(4cqw)}}
+@keyframes k-pop{from{opacity:0;transform:scale(.6)}}
+@keyframes k-zoom{from{opacity:0;transform:scale(1.4)}}
+@keyframes k-stamp{from{opacity:0;transform:rotate(-8deg) scale(1.9)}}
+@keyframes k-fade{from{opacity:0}}
+@keyframes k-blur{from{opacity:0;filter:blur(1cqw)}}
+@keyframes k-wipe{from{clip-path:inset(0 100% 0 0)}}
+@keyframes k-wipe-up{from{clip-path:inset(100% 0 0 0)}}
+@keyframes k-flip{from{opacity:0;transform:perspective(60cqw) rotateX(80deg)}}
+@keyframes k-spin-in{from{opacity:0;transform:rotate(-180deg) scale(.4)}}
+@keyframes k-grow-x{from{transform:scaleX(0)}}
+@keyframes k-grow-y{from{transform:scaleY(0)}}
+@keyframes k-bounce-in{0%{opacity:0;transform:translateY(-6cqw)}60%{opacity:1;transform:translateY(0)}75%{transform:translateY(-1.2cqw)}90%{transform:translateY(0)}95%{transform:translateY(-.3cqw)}}
+
+.active .a  {animation:k-rise .6s var(--d,0s) both cubic-bezier(.2,.7,.2,1)}
+.active .dn {animation:k-drop .6s var(--d,0s) both cubic-bezier(.2,.7,.2,1)}
+.active .sl {animation:k-left .6s var(--d,0s) both cubic-bezier(.2,.7,.2,1)}
+.active .sr {animation:k-right .6s var(--d,0s) both cubic-bezier(.2,.7,.2,1)}
+.active .p  {animation:k-pop .5s var(--d,0s) both cubic-bezier(.3,1.4,.5,1)}
+.active .zm {animation:k-zoom .55s var(--d,0s) both cubic-bezier(.2,.8,.2,1)}
+.active .sp {animation:k-stamp .35s var(--d,0s) both cubic-bezier(.2,.8,.2,1)}
+.active .f  {animation:k-fade .6s var(--d,0s) both}
+.active .bl {animation:k-blur .7s var(--d,0s) both cubic-bezier(.2,.7,.2,1)}
+.active .wp {animation:k-wipe .7s var(--d,0s) both cubic-bezier(.7,0,.2,1)}
+.active .wu {animation:k-wipe-up .7s var(--d,0s) both cubic-bezier(.7,0,.2,1)}
+.active .fl {animation:k-flip .6s var(--d,0s) both cubic-bezier(.2,.8,.2,1);transform-origin:50% 100%}
+.active .si {animation:k-spin-in .6s var(--d,0s) both cubic-bezier(.3,1.3,.5,1)}
+.active .gx {animation:k-grow-x .8s var(--d,0s) both cubic-bezier(.7,0,.2,1);transform-origin:0 50%}
+.active .gy {animation:k-grow-y .8s var(--d,0s) both cubic-bezier(.7,0,.2,1);transform-origin:50% 100%}
+.active .bi {animation:k-bounce-in .9s var(--d,0s) both ease-out}
+
+/* ---------- 4. Attention one-shots (put on a WRAPPER if the element already has an entrance) ---------- */
+@keyframes k-shake{10%,90%{transform:translateX(-.2cqw)}20%,80%{transform:translateX(.4cqw)}30%,50%,70%{transform:translateX(-.7cqw)}40%,60%{transform:translateX(.7cqw)}}
+@keyframes k-tada{10%,20%{transform:scale(.92) rotate(-3deg)}30%,50%,70%,90%{transform:scale(1.1) rotate(3deg)}40%,60%,80%{transform:scale(1.1) rotate(-3deg)}}
+@keyframes k-jello{30%{transform:scale(1.2,.8)}40%{transform:scale(.85,1.15)}55%{transform:scale(1.08,.92)}70%{transform:scale(.97,1.03)}}
+@keyframes k-heartbeat{15%,45%{transform:scale(1.18)}30%{transform:scale(1)}}
+@keyframes k-flash{25%,75%{opacity:.2}50%{opacity:1}}
+.active .shake{animation:k-shake .6s var(--d,0s) both}
+.active .tada{animation:k-tada .9s var(--d,0s) both}
+.active .jello{animation:k-jello .8s var(--d,0s) both}
+.active .beat{animation:k-heartbeat 1s var(--d,0s) both}
+.active .flash{animation:k-flash .8s var(--d,0s) both}
+
+/* ---------- 5. Ambient loops (periods 1s/2s/3s/4s: divide your scene durations) ---------- */
+@keyframes k-float{50%{transform:translateY(-1cqw)}}
+@keyframes k-bob{50%{transform:translateY(-.4cqw)}}
+@keyframes k-pulse{50%{transform:scale(1.06)}}
+@keyframes k-spin{to{transform:rotate(360deg)}}
+@keyframes k-wiggle{25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+@keyframes k-glow{50%{box-shadow:0 0 0 1cqw color-mix(in srgb,var(--accent) 25%,transparent)}}
+@keyframes k-blink{50%{opacity:0}}
+@keyframes k-ping{from{transform:scale(1);opacity:.7}to{transform:scale(2.4);opacity:0}}
+.active .float{animation:k-float 3s ease-in-out infinite}
+.active .bob{animation:k-bob 1s ease-in-out infinite}
+.active .pulse{animation:k-pulse 2s ease-in-out infinite}
+.active .spin{animation:k-spin 2s linear infinite}
+.active .wiggle{animation:k-wiggle 1s ease-in-out infinite}
+.active .glow{animation:k-glow 2s ease-in-out infinite}
+.active .blink{animation:k-blink 1s steps(1) infinite}
+svg .spin,svg .wiggle,svg .pulse{transform-box:fill-box;transform-origin:center}
+
+/* Ping ring behind an element (notification dot, live badge, tap target) */
+.ping{position:relative}
+.ping::after{content:"";position:absolute;inset:0;border-radius:inherit;border:.25cqw solid var(--accent);opacity:0;pointer-events:none}
+.active .ping::after{animation:k-ping 1s var(--d,0s) ease-out infinite}
+
+/* ---------- 6. Draw-on SVG (paths/shapes need pathLength="1"; kit icons and engine arrows have it) ---------- */
+@keyframes k-draw{from{stroke-dashoffset:1;opacity:0}2%{opacity:1}}
+@keyframes k-head{from{opacity:0;transform:scale(.2)}}
+.draw,.draw path,.draw circle,.draw rect,.draw ellipse,.draw line,.draw polyline,.draw polygon,
+path.link-path{stroke-dasharray:1 1}
+.active .draw:not(svg),.active svg.draw path:not(.arrow-head),.active svg.draw :is(circle,rect,ellipse,line,polyline,polygon),
+.active svg.draw use,.active .link-path{animation:k-draw var(--dd,.8s) var(--d,0s) both cubic-bezier(.6,0,.3,1)}
+.active .arrow-head{animation:k-head .25s calc(var(--d,0s) + var(--dd,.8s) * .9) both cubic-bezier(.3,1.5,.5,1);transform-box:fill-box;transform-origin:center}
+.arrow-head{fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* Arrows: <svg class="arrow draw" viewBox="0 0 200 100" style="--d:.5s"><path data-arrow d="M10 80C60 10 140 10 190 50"/></svg> */
+svg.arrow{overflow:visible;fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+svg.arrow.dashed path:not(.arrow-head){stroke-dasharray:.03 .03}
+/* Connectors: <svg class="link draw" data-connect="#a #b" style="--d:1s"></svg> (direct child of .scene) */
+svg.link{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1;
+         fill:none;stroke:var(--accent);stroke-width:.32cqw;stroke-linecap:round;stroke-linejoin:round}
+svg.link .arrow-head{stroke-width:.32cqw}
+/* Flowing dashes (data moving along a line): add class "flow" */
+@keyframes k-flow{to{stroke-dashoffset:-.2}}
+.active svg.flow path:not(.arrow-head){stroke-dasharray:.04 .03;animation:k-fade .4s var(--d,0s) both,k-flow 1s var(--d,0s) linear infinite}
+
+/* ---------- 7. Icons ---------- */
+.icon{width:var(--s,4cqw);height:var(--s,4cqw);flex:none;overflow:visible;fill:none;stroke:currentColor;stroke-width:2;
+      stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+.icon.fill{fill:currentColor}
+.icon-tile{display:inline-grid;place-items:center;width:var(--t,8cqw);height:var(--t,8cqw);border-radius:28%;
+           background:var(--tint);color:var(--accent);--s:calc(var(--t,8cqw) * .5)}
+.icon-tile.solid{background:var(--accent);color:var(--on-accent)}
+.icon-tile.round{border-radius:50%}
+.icon-tile.good{background:var(--good-bg);color:var(--good)} .icon-tile.bad{background:var(--bad-bg);color:var(--bad)}
+
+/* ---------- 8. Type ---------- */
+.kicker{font-family:var(--mono);font-size:max(9px,1.4cqw);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.h1{font-family:var(--display);font-size:max(26px,8cqw);line-height:1;font-weight:700;letter-spacing:-.02em;margin:0}
+.h2{font-family:var(--display);font-size:max(20px,4.6cqw);line-height:1.05;font-weight:700;margin:0}
+.h3{font-family:var(--display);font-size:max(14px,2.6cqw);line-height:1.15;font-weight:700;margin:0}
+.lead{font-size:max(12px,2cqw);color:var(--muted);margin:0}
+.mono{font-family:var(--mono)}
+.hl{color:var(--accent)}
+.mark{padding:0 .06em;margin:0 -.06em;-webkit-box-decoration-break:clone;box-decoration-break:clone;background:linear-gradient(transparent 62%,color-mix(in srgb,var(--accent) 30%,transparent) 62%,color-mix(in srgb,var(--accent) 30%,transparent) 90%,transparent 90%)}
+.active .mark{background-size:100% 100%;background-repeat:no-repeat;animation:k-mark .6s var(--d,0s) both cubic-bezier(.7,0,.2,1)}
+@keyframes k-mark{from{background-size:0 100%}}
+/* Engine typing: <span data-type="Hello" data-type-at="1" data-type-cps="16"></span>; caret while typing */
+.typing::after,.caret::after{content:"";display:inline-block;width:.08em;height:1em;margin-left:.06em;vertical-align:-.12em;background:var(--accent)}
+.caret::after{animation:k-blink 1s steps(1) infinite}
+
+/* ---------- 9. UI widgets ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:2cqw 2.4cqw;box-shadow:var(--shadow)}
+.pill{display:inline-flex;align-items:center;gap:.6cqw;padding:.45cqw 1.3cqw;border-radius:99px;font-size:max(9px,1.5cqw);font-weight:600;
+      background:var(--tint);color:var(--accent);white-space:nowrap}
+.pill.good{background:var(--good-bg);color:var(--good)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill .icon{--s:1.6cqw}
+.stamp{display:inline-block;padding:.5cqw 1.5cqw;border:.3cqw solid var(--bad);color:var(--bad);font-family:var(--mono);
+       font-weight:700;font-size:max(10px,2cqw);letter-spacing:.08em;transform:rotate(-6deg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.8cqw;padding:1cqw 2.2cqw;border-radius:1cqw;border:0;
+     font:600 max(10px,1.7cqw)/1 var(--sans);background:var(--accent);color:var(--on-accent);white-space:nowrap;
+     transition:transform .12s ease-out,filter .12s ease-out;box-shadow:0 .35cqw 0 color-mix(in srgb,var(--accent) 60%,#000)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 .15cqw var(--line)}
+.btn .icon{--s:2cqw}
+.pressed{transform:scale(.94) translateY(.2cqw)!important;filter:brightness(.92)}
+.input{display:flex;align-items:center;gap:1cqw;min-width:30cqw;padding:1.1cqw 1.4cqw;border-radius:1cqw;text-align:left;
+       background:var(--surface);border:.15cqw solid var(--line);font-size:max(10px,1.7cqw);color:var(--ink)}
+.input .icon{--s:2cqw;color:var(--muted)}
+.input.focus,.input[data-now~="focus"]{border-color:var(--accent);box-shadow:0 0 0 .4cqw color-mix(in srgb,var(--accent) 22%,transparent)}
+.input .ph{color:var(--muted)}
+.toggle{position:relative;display:inline-block;width:6cqw;height:3.4cqw;border-radius:99px;background:color-mix(in srgb,var(--muted) 38%,transparent);transition:background .25s}
+.toggle::after{content:"";position:absolute;top:.4cqw;left:.4cqw;width:2.6cqw;height:2.6cqw;border-radius:50%;background:#fff;
+               box-shadow:0 .15cqw .4cqw rgba(0,0,0,.25);transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
+.toggle[data-now~="on"]{background:var(--good)}
+.toggle[data-now~="on"]::after{transform:translateX(2.6cqw)}
+.check{display:inline-grid;place-items:center;width:3cqw;height:3cqw;border-radius:.7cqw;border:.2cqw solid var(--line);
+       color:var(--on-accent);transition:background .2s,border-color .2s}
+.check .icon{--s:2cqw;opacity:0;transition:opacity .2s}
+.check[data-now~="on"]{background:var(--good);border-color:var(--good)}
+.check[data-now~="on"] .icon{opacity:1}
+.avatar{display:inline-grid;place-items:center;width:var(--a,5cqw);height:var(--a,5cqw);border-radius:50%;flex:none;overflow:hidden;
+        background:var(--accent-2);color:#fff;font-weight:700;font-size:calc(var(--a,5cqw) * .4)}
+.badge-dot{position:absolute;top:-.5cqw;right:-.5cqw;min-width:2.2cqw;height:2.2cqw;padding:0 .5cqw;border-radius:99px;
+           background:var(--bad);color:#fff;font:700 max(8px,1.3cqw)/2.2cqw var(--sans);text-align:center}
+.toast{display:flex;align-items:center;gap:1.4cqw;padding:1.3cqw 1.8cqw;border-radius:1.4cqw;text-align:left;min-width:32cqw;
+       background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);font-size:max(10px,1.6cqw)}
+.toast b{display:block;font-size:max(10px,1.7cqw)} .toast small{color:var(--muted)}
+.chat{display:flex;flex-direction:column;gap:1cqw;width:100%}
+.bubble{max-width:75%;padding:1cqw 1.5cqw;border-radius:1.6cqw;font-size:max(10px,1.6cqw);line-height:1.3;text-align:left}
+.bubble.them{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:.4cqw}
+.bubble.me{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:.4cqw}
+.dots{display:inline-flex;gap:.5cqw;padding:.4cqw 0}
+.dots i{width:.9cqw;height:.9cqw;border-radius:50%;background:currentColor;opacity:.5}
+.active .dots i{animation:k-bob 1s ease-in-out infinite}
+.dots i:nth-child(2){animation-delay:.15s!important} .dots i:nth-child(3){animation-delay:.3s!important}
+/* Progress: style="--p:70" (0-100) or data-tween="--p 0 70 .5 1.2" */
+.bar{width:var(--w,30cqw);height:var(--h,1.2cqw);border-radius:99px;background:color-mix(in srgb,var(--muted) 22%,transparent);overflow:hidden}
+.bar>i{display:block;height:100%;width:calc(var(--p,0) * 1%);border-radius:inherit;background:var(--accent)}
+.ring{width:var(--s,12cqw);height:var(--s,12cqw);transform:rotate(-90deg);fill:none;stroke-width:10;stroke-linecap:round}
+.ring .track{stroke:color-mix(in srgb,var(--muted) 22%,transparent)}
+.ring .val{stroke:var(--accent);stroke-dasharray:1 1;stroke-dashoffset:calc(1 - var(--p,0) / 100)}
+.kbd{display:inline-block;padding:.3cqw .9cqw;border-radius:.6cqw;border:.15cqw solid var(--line);border-bottom-width:.4cqw;
+     font:600 max(9px,1.5cqw)/1.2 var(--mono);background:var(--surface)}
+.skeleton{border-radius:.6cqw;height:1.4cqw;background:color-mix(in srgb,var(--muted) 22%,transparent)}
+.divider{height:1px;width:100%;background:var(--line)}
+
+/* Device frames */
+.phone{position:relative;width:var(--w,24cqw);aspect-ratio:9/19;border-radius:3.6cqw;padding:1cqw;background:#111;
+       box-shadow:var(--shadow),inset 0 0 0 .25cqw #333;flex:none}
+.phone>.screen{position:relative;width:100%;height:100%;border-radius:2.7cqw;overflow:hidden;background:var(--surface);
+               display:flex;flex-direction:column;gap:1cqw;padding:4cqw 1.6cqw 1.6cqw;text-align:left}
+.phone>.screen::before{content:"";position:absolute;top:1cqw;left:50%;width:7cqw;height:1.8cqw;margin-left:-3.5cqw;border-radius:99px;background:#111}
+.browser{width:var(--w,60cqw);border-radius:1.2cqw;overflow:hidden;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);text-align:left}
+.browser>.bar-top{display:flex;align-items:center;gap:.7cqw;padding:1cqw 1.4cqw;background:color-mix(in srgb,var(--line) 35%,var(--surface));border-bottom:1px solid var(--line)}
+.browser>.bar-top i{width:1.1cqw;height:1.1cqw;border-radius:50%;background:var(--line)}
+.browser>.bar-top i:nth-child(1){background:#FF5F57} .browser>.bar-top i:nth-child(2){background:#FEBC2E} .browser>.bar-top i:nth-child(3){background:#28C840}
+.browser>.bar-top .url{flex:1;margin-left:1cqw;padding:.4cqw 1cqw;border-radius:99px;background:var(--surface);font:max(8px,1.2cqw) var(--mono);color:var(--muted)}
+.browser>.body{padding:2cqw}
+.terminal{width:var(--w,56cqw);border-radius:1.2cqw;background:#16161A;color:#E8E6E3;padding:1.8cqw 2.2cqw;text-align:left;
+          font:max(10px,1.7cqw)/1.6 var(--mono);box-shadow:var(--shadow)}
+.terminal .ok{color:#4ADE80} .terminal .dim{color:#8B8B9A} .terminal .hl{color:#F9A8D4}
+
+/* ---------- 10. Cursor (engine-driven; direct child of .scene) ---------- */
+.cursor{position:absolute;left:0;top:0;width:var(--s,2.6cqw);z-index:50;pointer-events:none;transform-origin:0 0;
+        filter:drop-shadow(0 .25cqw .4cqw rgba(0,0,0,.3))}
+.cursor svg{display:block;width:100%;height:auto;overflow:visible}
+.cursor .cursor-ripple{position:absolute;left:0;top:0;width:5cqw;height:5cqw;margin:-2.5cqw 0 0 -2.5cqw;border-radius:50%;
+        border:.3cqw solid var(--accent);opacity:0;background:color-mix(in srgb,var(--accent) 20%,transparent)}
+
+/* ---------- 11. Confetti (engine-driven; direct child of .scene) ---------- */
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:40}
+.confetti>i{position:absolute;left:0;top:0;width:1cqw;height:.6cqw;border-radius:.1cqw}
+.confetti>i.c{width:.8cqw;height:.8cqw;border-radius:50%}
+
+/* ---------- 12. Character "Blip" (<div data-character data-now="happy wave"></div>) ---------- */
+.char{position:relative;display:inline-block;flex:none;width:var(--size,16cqw);aspect-ratio:200/270;
+      --body:var(--shirt,var(--accent));--belly:rgba(255,255,255,.28);--limb:var(--ch-line);--foot:var(--ch-line);
+      --bulb:var(--warn,#E9B949);--leaf:#5FA36F;--cheek:#FF8F8F;--ch-ink:#1E1E1E;--ch-line:#1E1E1E}
+.char>svg{display:block;width:100%;height:100%;overflow:visible}
+.char.flip>svg{transform:scaleX(-1)}
+.ch *{transform-box:view-box}
+.ch-line{stroke:var(--ch-line);stroke-width:3.5;stroke-linejoin:round}
+.ch-body{fill:var(--body)}
+.ch-belly{fill:var(--belly)}
+.ch-shine{fill:none;stroke:rgba(255,255,255,.45);stroke-width:5;stroke-linecap:round}
+.ch-limb{fill:none;stroke:var(--limb);stroke-width:6;stroke-linecap:round}
+.ch-hand{fill:var(--body)}
+.ch-foot{fill:var(--foot)}
+.ch-stalk{fill:none;stroke:var(--ch-line);stroke-width:4;stroke-linecap:round}
+.ch-bulb{fill:var(--bulb)} .ch-leaf{fill:var(--leaf)}
+.ch-sprout{display:none}
+.char[data-top="sprout"] .ch-sprout{display:inline}
+.char:is([data-top="sprout"],[data-top="none"]) .ch-antenna{display:none}
+.ch-shadow{fill:rgba(0,0,0,.12);transform-box:fill-box;transform-origin:center}
+.ch-cheek{fill:var(--cheek);opacity:.5}
+.ch-eye{transform-box:fill-box;transform-origin:center}
+.ch-eye ellipse{fill:var(--ch-ink)} .ch-glint{fill:#fff}
+.ch-eye-happy{fill:none;stroke:var(--ch-ink);stroke-width:3.5;stroke-linecap:round;opacity:0}
+.ch-brow{fill:none;stroke:var(--ch-ink);stroke-width:3.5;stroke-linecap:round;opacity:0;transform-box:fill-box;transform-origin:center;transition:transform .2s,opacity .2s}
+.ch-glasses{display:none;fill:rgba(255,255,255,.3);stroke:var(--ch-ink);stroke-width:3}
+.char[data-acc~="glasses"] .ch-glasses{display:inline}
+.ch-m{fill:none;stroke:var(--ch-ink);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.ch-m-grin,.ch-m-o,.ch-m-talk{fill:#7A2E2E}
+.ch-m-talk{transform-box:fill-box;transform-origin:center}
+.ch-eyes{transition:transform .2s ease-out}
+
+.ch-arm-l{transform-origin:52px 150px}  .ch-arm-r{transform-origin:148px 150px}
+.ch-fore-l{transform-origin:38px 172px} .ch-fore-r{transform-origin:162px 172px}
+.ch-leg-l{transform-origin:84px 210px}  .ch-leg-r{transform-origin:116px 210px}
+.ch-head{transform-origin:100px 150px}  .ch-antenna,.ch-sprout{transform-origin:100px 74px}
+.ch-upper{transform-origin:100px 215px} .ch-all{transform-origin:100px 258px}
+
+/* idle: breathe (squash), blink, face sway, antenna wobble (always on) */
+@keyframes ch-breathe{50%{transform:scale(1.015,.985)}}
+@keyframes ch-blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+@keyframes ch-sway{0%,100%{transform:rotate(-1.5deg)}50%{transform:rotate(1.5deg)}}
+@keyframes ch-wobble{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+.active .ch-upper{animation:ch-breathe 2s ease-in-out infinite}
+.active .ch-eye{animation:ch-blink 4s infinite}
+.active .ch-head{animation:ch-sway 4s ease-in-out infinite}
+.active :is(.ch-antenna,.ch-sprout){animation:ch-wobble 2s ease-in-out infinite}
+
+/* moods: happy (default) excited laugh neutral sad surprised angry wink talk */
+.char .ch-m-smile{opacity:1}
+.char:is([data-now~="excited"],[data-now~="laugh"],[data-now~="cheer"],[data-now~="neutral"],[data-now~="sad"],[data-now~="surprised"],[data-now~="angry"],[data-now~="talk"],[data-now~="think"]) .ch-m-smile{opacity:0}
+.char:is([data-now~="excited"],[data-now~="laugh"],[data-now~="cheer"]) .ch-m-grin{opacity:1}
+.char:is([data-now~="neutral"],[data-now~="angry"],[data-now~="think"]) .ch-m-flat{opacity:1}
+.char[data-now~="sad"] .ch-m-sad{opacity:1}
+.char[data-now~="surprised"] .ch-m-o{opacity:1}
+.char[data-now~="laugh"] .ch-eyes{opacity:0}
+.char[data-now~="laugh"] .ch-eye-happy{opacity:1}
+.char:is([data-now~="sad"],[data-now~="angry"],[data-now~="surprised"],[data-now~="think"]) .ch-brow{opacity:1}
+.char[data-now~="sad"] .ch-brow-l{transform:rotate(-16deg) translateY(1px)}
+.char[data-now~="sad"] .ch-brow-r{transform:rotate(16deg) translateY(1px)}
+.char[data-now~="angry"] .ch-brow-l{transform:rotate(18deg) translateY(4px)}
+.char[data-now~="angry"] .ch-brow-r{transform:rotate(-18deg) translateY(4px)}
+.char[data-now~="surprised"] .ch-brow{transform:translateY(-5px)}
+.char[data-now~="think"] .ch-brow-r{transform:translateY(-4px) rotate(-8deg)}
+.char[data-now~="surprised"] .ch-eye ellipse{rx:7;ry:9.5}
+.char[data-now~="wink"] .ch-eye-r{transform:scaleY(.12);animation:none}
+.char[data-now~="sad"] .ch-cheek{opacity:0}
+.char:is([data-now~="excited"],[data-now~="laugh"],[data-now~="cheer"]) .ch-cheek{opacity:.85}
+.char[data-now~="talk"] .ch-m-talk{opacity:1;animation:ch-talk .22s ease-in-out infinite alternate}
+@keyframes ch-talk{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
+
+/* looks */
+.char[data-now~="look-left"] .ch-eyes{transform:translateX(-5px)}
+.char[data-now~="look-right"] .ch-eyes{transform:translateX(5px)}
+.char:is([data-now~="look-up"],[data-now~="think"]) .ch-eyes{transform:translate(4px,-5px)}
+.char[data-now~="look-down"] .ch-eyes{transform:translateY(4px)}
+
+/* poses: --rot = upper arm (shoulder), --fr = forearm (elbow). One arm pose at a time. */
+@keyframes ch-pose{to{transform:rotate(var(--rot))}}
+@keyframes ch-fpose{to{transform:rotate(var(--fr))}}
+@keyframes ch-tilt{to{transform:rotate(var(--tilt))}}
+@keyframes ch-fwave{from{transform:rotate(-58deg)}to{transform:rotate(-14deg)}}
+@keyframes ch-swing{from{transform:rotate(var(--rot))}to{transform:rotate(calc(var(--rot) * -1))}}
+@keyframes ch-jitter{from{transform:rotate(var(--fr))}to{transform:rotate(calc(var(--fr) + 12deg))}}
+@keyframes ch-hop{0%,100%{transform:translateY(0)}45%{transform:translateY(-9%)}}
+@keyframes ch-jump{0%{transform:translateY(0) scale(1,1)}15%{transform:translateY(0) scale(1.08,.88)}45%{transform:translateY(-14%) scale(.95,1.06)}75%{transform:translateY(0) scale(1.06,.92)}100%{transform:translateY(0)}}
+@keyframes ch-shadow-hop{0%,100%{transform:scaleX(1);opacity:1}45%{transform:scaleX(.7);opacity:.6}}
+@keyframes ch-shadow-jump{0%,15%,75%,100%{transform:scaleX(1);opacity:1}45%{transform:scaleX(.6);opacity:.5}}
+@keyframes ch-nod{from{transform:rotate(-5deg) translateY(-2px)}to{transform:rotate(5deg) translateY(2px)}}
+@keyframes ch-no{from{transform:translateX(-5px)}to{transform:translateX(5px)}}
+@keyframes ch-step-l{from{transform:rotate(18deg)}to{transform:rotate(-18deg)}}
+@keyframes ch-step-r{from{transform:rotate(-18deg)}to{transform:rotate(18deg)}}
+.ch-arm,.ch-fore,.ch-head{--pose:.38s both cubic-bezier(.3,1.35,.5,1)}
+.char[data-now~="wave"] .ch-arm-r{--rot:-105deg;animation:ch-pose var(--pose)}
+.char[data-now~="wave"] .ch-fore-r{--fr:-40deg;animation:ch-fpose var(--pose),ch-fwave .32s .38s ease-in-out infinite alternate}
+.char[data-now~="point"] .ch-arm-r{--rot:-68deg;animation:ch-pose var(--pose)}
+.char[data-now~="point"] .ch-fore-r{--fr:-8deg;animation:ch-fpose var(--pose)}
+.char[data-now~="point-up"] .ch-arm-r{--rot:-122deg;animation:ch-pose var(--pose)}
+.char[data-now~="point-up"] .ch-fore-r{--fr:-25deg;animation:ch-fpose var(--pose)}
+.char[data-now~="point-left"] .ch-arm-l{--rot:68deg;animation:ch-pose var(--pose)}
+.char[data-now~="point-left"] .ch-fore-l{--fr:8deg;animation:ch-fpose var(--pose)}
+.char[data-now~="present"] .ch-arm-r{--rot:-40deg;animation:ch-pose var(--pose)}
+.char[data-now~="present"] .ch-fore-r{--fr:-25deg;animation:ch-fpose var(--pose)}
+.char[data-now~="present"] .ch-arm-l{--rot:40deg;animation:ch-pose var(--pose)}
+.char[data-now~="present"] .ch-fore-l{--fr:25deg;animation:ch-fpose var(--pose)}
+.char[data-now~="cheer"] .ch-arm-r{--rot:-125deg;animation:ch-pose var(--pose)}
+.char[data-now~="cheer"] .ch-fore-r{--fr:18deg;animation:ch-fpose var(--pose)}
+.char[data-now~="cheer"] .ch-arm-l{--rot:125deg;animation:ch-pose var(--pose)}
+.char[data-now~="cheer"] .ch-fore-l{--fr:-18deg;animation:ch-fpose var(--pose)}
+.char:is([data-now~="cheer"],[data-now~="bounce"]) .ch-all{animation:ch-hop .5s .2s ease-in-out infinite}
+.char:is([data-now~="cheer"],[data-now~="bounce"]) .ch-shadow{animation:ch-shadow-hop .5s .2s ease-in-out infinite}
+.char[data-now~="shrug"] .ch-arm-r{--rot:-30deg;animation:ch-pose var(--pose)}
+.char[data-now~="shrug"] .ch-fore-r{--fr:-75deg;animation:ch-fpose var(--pose)}
+.char[data-now~="shrug"] .ch-arm-l{--rot:30deg;animation:ch-pose var(--pose)}
+.char[data-now~="shrug"] .ch-fore-l{--fr:75deg;animation:ch-fpose var(--pose)}
+.char[data-now~="shrug"] .ch-head{--tilt:7deg;animation:ch-tilt var(--pose)}
+.char[data-now~="think"] .ch-arm-r{--rot:60deg;animation:ch-pose var(--pose)}
+.char[data-now~="think"] .ch-fore-r{--fr:96deg;animation:ch-fpose var(--pose)}
+.char[data-now~="think"] .ch-head{--tilt:-6deg;animation:ch-tilt var(--pose)}
+.char[data-now~="type"] .ch-arm-r{--rot:45deg;animation:ch-pose var(--pose)}
+.char[data-now~="type"] .ch-fore-r{--fr:56deg;animation:ch-jitter .12s ease-in-out infinite alternate}
+.char[data-now~="type"] .ch-arm-l{--rot:-45deg;animation:ch-pose var(--pose)}
+.char[data-now~="type"] .ch-fore-l{--fr:-68deg;animation:ch-jitter .12s .06s ease-in-out infinite alternate}
+.char[data-now~="clap"] .ch-arm-r{--rot:70deg;animation:ch-pose var(--pose)}
+.char[data-now~="clap"] .ch-fore-r{--fr:58deg;animation:ch-jitter .2s ease-in-out infinite alternate}
+.char[data-now~="clap"] .ch-arm-l{--rot:-70deg;animation:ch-pose var(--pose)}
+.char[data-now~="clap"] .ch-fore-l{--fr:-70deg;animation:ch-jitter .2s ease-in-out infinite alternate}
+.char[data-now~="nod"] .ch-head{animation:ch-nod .4s ease-in-out infinite alternate}
+.char[data-now~="no"] .ch-head{animation:ch-no .18s ease-in-out infinite alternate}
+.char[data-now~="jump"] .ch-all{animation:ch-jump .7s both cubic-bezier(.3,.6,.4,1)}
+.char[data-now~="jump"] .ch-shadow{animation:ch-shadow-jump .7s both}
+.char[data-now~="walk"] .ch-leg-l{animation:ch-step-l .25s ease-in-out infinite alternate}
+.char[data-now~="walk"] .ch-leg-r{animation:ch-step-r .25s ease-in-out infinite alternate}
+.char[data-now~="walk"] .ch-arm-l{--rot:-14deg;animation:ch-swing .25s ease-in-out infinite alternate}
+.char[data-now~="walk"] .ch-arm-r{--rot:14deg;animation:ch-swing .25s ease-in-out infinite alternate}
+.char[data-now~="walk"] .ch-upper{animation:ch-breathe .25s ease-in-out infinite}
+
+/* Speech / thought bubble next to a character */
+.say{position:relative;display:inline-block;padding:1cqw 1.6cqw;border-radius:1.6cqw;background:var(--surface);
+     border:.2cqw solid var(--ink);font-size:max(10px,1.8cqw);font-weight:600;white-space:nowrap}
+.say::after{content:"";position:absolute;bottom:-1.1cqw;left:2.4cqw;width:1.8cqw;height:1.8cqw;background:inherit;
+     border-right:.2cqw solid var(--ink);border-bottom:.2cqw solid var(--ink);transform:rotate(45deg) skew(10deg,10deg)}
+.say.right::after{left:auto;right:2.4cqw}
+
+@media (prefers-reduced-motion: reduce){ .scene *,.scene{animation:none!important;transition:none!important} }
+
+/* ---------- 13. Presenter controls (optional #ctl) ---------- */
+.ctl{display:flex;align-items:center;gap:8px;margin-top:10px;font:13px var(--mono);color:var(--ink)}
+.ctl button{font:inherit;padding:6px 10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;cursor:pointer}
+.ctl input{flex:1;accent-color:var(--accent)}

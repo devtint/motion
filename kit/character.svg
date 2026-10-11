@@ -1,0 +1,47 @@
+<!--
+  Mascot "Blip": a soft pebble creature with noodle limbs. Injected as <template id="kit-character">
+  by `node kit.mjs sync`; the engine clones it into every [data-character] element.
+  Pivots (viewBox units): shoulders 52,150 / 148,150 · elbows 38,172 / 162,172 · face 100,150
+                          antenna 100,72 · hips 84,212 / 116,212 · ground 100,258.
+  Poses and moods are CSS (kit.css "Character"), selected with data-now="happy wave".
+-->
+<svg class="ch" viewBox="0 0 200 270" xmlns="http://www.w3.org/2000/svg">
+  <ellipse class="ch-shadow" cx="100" cy="258" rx="50" ry="6"/>
+  <g class="ch-all">
+    <g class="ch-leg ch-leg-l"><path class="ch-limb" d="M84 210V240"/><path class="ch-foot ch-line" d="M70 249a14 9 0 0 1 28 0z"/></g>
+    <g class="ch-leg ch-leg-r"><path class="ch-limb" d="M116 210V240"/><path class="ch-foot ch-line" d="M102 249a14 9 0 0 1 28 0z"/></g>
+    <g class="ch-upper">
+      <g class="ch-antenna"><path class="ch-stalk" d="M100 74Q97 58 107 45"/><circle class="ch-bulb ch-line" cx="109" cy="41" r="8"/></g>
+      <g class="ch-sprout"><path class="ch-stalk" d="M100 74V55"/><path class="ch-leaf ch-line" d="M100 58Q86 40 76 50Q86 62 100 58Z"/><path class="ch-leaf ch-line" d="M100 55Q112 34 125 42Q117 57 100 55Z"/></g>
+      <rect class="ch-body ch-line" x="46" y="70" width="108" height="150" rx="54"/>
+      <ellipse class="ch-belly" cx="100" cy="188" rx="32" ry="20"/>
+      <path class="ch-shine" d="M64 112Q65 92 79 83"/>
+      <g class="ch-head">
+        <ellipse class="ch-cheek" cx="69" cy="139" rx="8" ry="4.5"/>
+        <ellipse class="ch-cheek" cx="131" cy="139" rx="8" ry="4.5"/>
+        <g class="ch-eyes">
+          <g class="ch-eye ch-eye-l"><ellipse cx="82" cy="121" rx="6" ry="8"/><circle class="ch-glint" cx="84.2" cy="118" r="2"/></g>
+          <g class="ch-eye ch-eye-r"><ellipse cx="118" cy="121" rx="6" ry="8"/><circle class="ch-glint" cx="120.2" cy="118" r="2"/></g>
+        </g>
+        <path class="ch-eye-happy" d="M75 123Q82 114 89 123M111 123Q118 114 125 123"/>
+        <path class="ch-brow ch-brow-l" d="M74 104Q82 100 90 104"/>
+        <path class="ch-brow ch-brow-r" d="M110 104Q118 100 126 104"/>
+        <g class="ch-glasses"><circle cx="82" cy="121" r="12"/><circle cx="118" cy="121" r="12"/><path d="M94 121h12"/></g>
+        <path class="ch-m ch-m-smile" d="M90 140Q100 150 110 140"/>
+        <path class="ch-m ch-m-flat" d="M91 143H109"/>
+        <path class="ch-m ch-m-sad" d="M90 147Q100 138 110 147"/>
+        <path class="ch-m ch-m-grin" d="M87 138Q100 158 113 138Z"/>
+        <ellipse class="ch-m ch-m-o" cx="100" cy="145" rx="5" ry="6"/>
+        <ellipse class="ch-m ch-m-talk" cx="100" cy="143" rx="8" ry="6"/>
+      </g>
+      <g class="ch-arm ch-arm-l">
+        <path class="ch-limb" d="M52 150L38 172"/>
+        <g class="ch-fore ch-fore-l"><path class="ch-limb" d="M38 172L34 190"/><circle class="ch-hand ch-line" cx="34" cy="195" r="7"/></g>
+      </g>
+      <g class="ch-arm ch-arm-r">
+        <path class="ch-limb" d="M148 150L162 172"/>
+        <g class="ch-fore ch-fore-r"><path class="ch-limb" d="M162 172L166 190"/><circle class="ch-hand ch-line" cx="166" cy="195" r="7"/></g>
+      </g>
+    </g>
+  </g>
+</svg>

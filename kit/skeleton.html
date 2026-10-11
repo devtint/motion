@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" data-palette="studio">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Untitled</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style id="kit-css"></style>
+<style>
+  /* Video-specific styles. Override palette tokens here if you need brand colors. */
+  .stage{/*ASPECT*/aspect-ratio:16/9;}
+</style>
+</head>
+<body>
+<div class="player">
+  <div class="stage" id="stage">
+
+    <section class="scene" data-key="intro" data-dur="4" data-name="Intro" data-out="fade">
+      <div class="kicker f" style="--d:.2s">Kicker</div>
+      <h1 class="h1 p" style="--d:.4s" data-sfx="pop">Headline</h1>
+    </section>
+
+  </div>
+  <!-- Presenter controls (optional): delete this block for pure motion videos -->
+  <div class="ctl" id="ctl">
+    <button id="prev">&#9664;</button><button id="play">Pause</button><button id="next">&#9654;</button>
+    <input id="seek" type="range" min="0" max="1" value="0"><span id="time">0:00</span>
+  </div>
+</div>
+<script id="kit-engine"></script>
+</body>
+</html>

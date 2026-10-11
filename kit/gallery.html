@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en" data-palette="studio"><head><meta charset="utf-8"><title>Kit Gallery</title>
+<style id="kit-css">
+/* ==========================================================================
+   Motion kit CSS. Synced into each video by `node kit.mjs sync video.html`.
+   Do not edit inside a video: put overrides in the video's own <style>.
+   Units: everything in cqw (1cqw = 1% of stage width).
+   Timing: --d = start (s from scene start), --dur on .scene is set by the engine.
+   ========================================================================== */
+
+/* ---------- 1. Palettes (choose with <html data-palette="...">) ---------- */
+:root, [data-palette="studio"]{
+  --bg:#ECE8E1; --surface:#F4E8E1; --stage:#ECE8E1; --ink:#1E1E1E; --muted:#6F675F; --line:#1E1E1E;
+  --accent:#C86A58; --accent-2:#3D6A8C; --on-accent:#FFFFFF; --tint:#F7E3DC;
+  --good:#3D7A5A; --good-bg:#E2EDE5; --bad:#B54334; --bad-bg:#FCE8E6; --warn:#C98A1B;
+  --serif:'Newsreader', Georgia, serif; --sans:'Inter', system-ui, 'Segoe UI', sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace; --display:var(--serif);
+  --radius:1.4cqw; --shadow:0 .5cqw 1.6cqw rgba(30,30,30,.12);
+}
+[data-palette="fintech"]{
+  --bg:#EDF0F3; --surface:#FFFFFF; --stage:#F8FAFB; --ink:#15202B; --muted:#566574; --line:#D3DAE1;
+  --accent:#F26A1B; --accent-2:#2563EB; --on-accent:#FFFFFF; --tint:#FDE9DC;
+  --good:#17794F; --good-bg:#DDF3E8; --bad:#B83A3A; --bad-bg:#FBE4E4; --display:var(--sans);
+}
+[data-palette="cyber"]{
+  --bg:#0B0F19; --surface:#111827; --stage:#0F172A; --ink:#F8FAFC; --muted:#94A3B8; --line:#1E293B;
+  --accent:#38BDF8; --accent-2:#A78BFA; --on-accent:#0F172A; --tint:#0C4A6E;
+  --good:#34D399; --good-bg:#064E3B; --bad:#F87171; --bad-bg:#7F1D1D; --display:var(--sans);
+  --shadow:0 .5cqw 2cqw rgba(0,0,0,.5);
+}
+[data-palette="emerald"]{
+  --bg:#F0FDF4; --surface:#FFFFFF; --stage:#F7FEE7; --ink:#064E3B; --muted:#047857; --line:#BBF7D0;
+  --accent:#10B981; --accent-2:#0EA5E9; --on-accent:#FFFFFF; --tint:#D1FAE5;
+  --good:#059669; --good-bg:#ECFDF5; --bad:#E11D48; --bad-bg:#FFE4E6; --display:var(--sans);
+}
+[data-palette="mono"]{
+  --bg:#FAFAFA; --surface:#FFFFFF; --stage:#F4F4F5; --ink:#18181B; --muted:#71717A; --line:#E4E4E7;
+  --accent:#18181B; --accent-2:#71717A; --on-accent:#FFFFFF; --tint:#E4E4E7;
+  --good:#16A34A; --good-bg:#DCFCE7; --bad:#DC2626; --bad-bg:#FEE2E2; --display:var(--sans);
+}
+[data-palette="neon"]{
+  --bg:#050505; --surface:#0F0F14; --stage:#08080B; --ink:#F5F5F7; --muted:#8B8B9A; --line:#26262E;
+  --accent:#EC4899; --accent-2:#06B6D4; --on-accent:#050505; --tint:#3B0A26;
+  --good:#22D3EE; --good-bg:#083344; --bad:#F43F5E; --bad-bg:#4C0519; --display:var(--sans);
+  --shadow:0 0 2cqw rgba(236,72,153,.25);
+}
+
+/* ---------- 2. Player, stage, scenes ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)}
+.player{max-width:1100px;margin:24px auto;padding:0 16px}
+.stage{position:relative;aspect-ratio:16/9;container-type:inline-size;overflow:hidden;
+       background:var(--stage);border:1px solid var(--line);border-radius:14px;color:var(--ink)}
+.scene{position:absolute;inset:0;display:none;padding:4cqw 5cqw;
+       flex-direction:column;justify-content:center;align-items:center;gap:2cqw;text-align:center}
+.scene.active{display:flex}
+.row{display:flex;align-items:center;justify-content:center;gap:2cqw}
+.col{display:flex;flex-direction:column;align-items:center;gap:1.2cqw}
+.abs{position:absolute}
+.layer{position:absolute;inset:0;pointer-events:none}
+
+/* Scene transitions: <section class="scene" data-in="fade" data-out="left" style="--tr:.5s"> */
+.scene{--in:none;--out:none;--tr:.45s}
+.scene[data-in="fade"]{--in:tr-fade}    .scene[data-out="fade"]{--out:tr-fade-out}
+.scene[data-in="up"]{--in:tr-up}        .scene[data-out="up"]{--out:tr-up-out}
+.scene[data-in="left"]{--in:tr-left}    .scene[data-out="left"]{--out:tr-left-out}
+.scene[data-in="right"]{--in:tr-right}  .scene[data-out="right"]{--out:tr-right-out}
+.scene[data-in="zoom"]{--in:tr-zoom}    .scene[data-out="zoom"]{--out:tr-zoom-out}
+.scene[data-in="blur"]{--in:tr-blur}    .scene[data-out="blur"]{--out:tr-blur-out}
+.scene[data-in="wipe"]{--in:tr-wipe}    .scene[data-out="wipe"]{--out:tr-wipe-out}
+.scene.active{animation:var(--in) var(--tr) both cubic-bezier(.2,.7,.2,1),
+                        var(--out) var(--tr) calc(var(--dur,99s) - var(--tr)) forwards cubic-bezier(.5,0,.75,0)}
+@keyframes tr-fade{from{opacity:0}}                          @keyframes tr-fade-out{to{opacity:0}}
+@keyframes tr-up{from{opacity:0;transform:translateY(6cqw)}}  @keyframes tr-up-out{to{opacity:0;transform:translateY(-6cqw)}}
+@keyframes tr-left{from{opacity:0;transform:translateX(10cqw)}} @keyframes tr-left-out{to{opacity:0;transform:translateX(-10cqw)}}
+@keyframes tr-right{from{opacity:0;transform:translateX(-10cqw)}} @keyframes tr-right-out{to{opacity:0;transform:translateX(10cqw)}}
+@keyframes tr-zoom{from{opacity:0;transform:scale(1.08)}}     @keyframes tr-zoom-out{to{opacity:0;transform:scale(.94)}}
+@keyframes tr-blur{from{opacity:0;filter:blur(1.5cqw)}}       @keyframes tr-blur-out{to{opacity:0;filter:blur(1.5cqw)}}
+@keyframes tr-wipe{from{clip-path:inset(0 100% 0 0)}}         @keyframes tr-wipe-out{to{clip-path:inset(0 0 0 100%)}}
+
+/* ---------- 3. Entrances (class + style="--d:.4s") ----------
+   Only `from` is defined: the resting markup IS the end state.            */
+@keyframes k-rise{from{opacity:0;transform:translateY(2cqw)}}
+@keyframes k-drop{from{opacity:0;transform:translateY(-2cqw)}}
+@keyframes k-left{from{opacity:0;transform:translateX(-4cqw)}}
+@keyframes k-right{from{opacity:0;transform:translateX(4cqw)}}
+@keyframes k-pop{from{opacity:0;transform:scale(.6)}}
+@keyframes k-zoom{from{opacity:0;transform:scale(1.4)}}
+@keyframes k-stamp{from{opacity:0;transform:rotate(-8deg) scale(1.9)}}
+@keyframes k-fade{from{opacity:0}}
+@keyframes k-blur{from{opacity:0;filter:blur(1cqw)}}
+@keyframes k-wipe{from{clip-path:inset(0 100% 0 0)}}
+@keyframes k-wipe-up{from{clip-path:inset(100% 0 0 0)}}
+@keyframes k-flip{from{opacity:0;transform:perspective(60cqw) rotateX(80deg)}}
+@keyframes k-spin-in{from{opacity:0;transform:rotate(-180deg) scale(.4)}}
+@keyframes k-grow-x{from{transform:scaleX(0)}}
+@keyframes k-grow-y{from{transform:scaleY(0)}}
+@keyframes k-bounce-in{0%{opacity:0;transform:translateY(-6cqw)}60%{opacity:1;transform:translateY(0)}75%{transform:translateY(-1.2cqw)}90%{transform:translateY(0)}95%{transform:translateY(-.3cqw)}}
+
+.active .a  {animation:k-rise .6s var(--d,0s) both cubic-bezier(.2,.7,.2,1)}
+.active .dn {animation:k-drop .6s var(--d,0s) both cubic-bezier(.2,.7,.2,1)}
+.active .sl {animation:k-left .6s var(--d,0s) both cubic-bezier(.2,.7,.2,1)}
+.active .sr {animation:k-right .6s var(--d,0s) both cubic-bezier(.2,.7,.2,1)}
+.active .p  {animation:k-pop .5s var(--d,0s) both cubic-bezier(.3,1.4,.5,1)}
+.active .zm {animation:k-zoom .55s var(--d,0s) both cubic-bezier(.2,.8,.2,1)}
+.active .sp {animation:k-stamp .35s var(--d,0s) both cubic-bezier(.2,.8,.2,1)}
+.active .f  {animation:k-fade .6s var(--d,0s) both}
+.active .bl {animation:k-blur .7s var(--d,0s) both cubic-bezier(.2,.7,.2,1)}
+.active .wp {animation:k-wipe .7s var(--d,0s) both cubic-bezier(.7,0,.2,1)}
+.active .wu {animation:k-wipe-up .7s var(--d,0s) both cubic-bezier(.7,0,.2,1)}
+.active .fl {animation:k-flip .6s var(--d,0s) both cubic-bezier(.2,.8,.2,1);transform-origin:50% 100%}
+.active .si {animation:k-spin-in .6s var(--d,0s) both cubic-bezier(.3,1.3,.5,1)}
+.active .gx {animation:k-grow-x .8s var(--d,0s) both cubic-bezier(.7,0,.2,1);transform-origin:0 50%}
+.active .gy {animation:k-grow-y .8s var(--d,0s) both cubic-bezier(.7,0,.2,1);transform-origin:50% 100%}
+.active .bi {animation:k-bounce-in .9s var(--d,0s) both ease-out}
+
+/* ---------- 4. Attention one-shots (put on a WRAPPER if the element already has an entrance) ---------- */
+@keyframes k-shake{10%,90%{transform:translateX(-.2cqw)}20%,80%{transform:translateX(.4cqw)}30%,50%,70%{transform:translateX(-.7cqw)}40%,60%{transform:translateX(.7cqw)}}
+@keyframes k-tada{10%,20%{transform:scale(.92) rotate(-3deg)}30%,50%,70%,90%{transform:scale(1.1) rotate(3deg)}40%,60%,80%{transform:scale(1.1) rotate(-3deg)}}
+@keyframes k-jello{30%{transform:scale(1.2,.8)}40%{transform:scale(.85,1.15)}55%{transform:scale(1.08,.92)}70%{transform:scale(.97,1.03)}}
+@keyframes k-heartbeat{15%,45%{transform:scale(1.18)}30%{transform:scale(1)}}
+@keyframes k-flash{25%,75%{opacity:.2}50%{opacity:1}}
+.active .shake{animation:k-shake .6s var(--d,0s) both}
+.active .tada{animation:k-tada .9s var(--d,0s) both}
+.active .jello{animation:k-jello .8s var(--d,0s) both}
+.active .beat{animation:k-heartbeat 1s var(--d,0s) both}
+.active .flash{animation:k-flash .8s var(--d,0s) both}
+
+/* ---------- 5. Ambient loops (periods 1s/2s/3s/4s: divide your scene durations) ---------- */
+@keyframes k-float{50%{transform:translateY(-1cqw)}}
+@keyframes k-bob{50%{transform:translateY(-.4cqw)}}
+@keyframes k-pulse{50%{transform:scale(1.06)}}
+@keyframes k-spin{to{transform:rotate(360deg)}}
+@keyframes k-wiggle{25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+@keyframes k-glow{50%{box-shadow:0 0 0 1cqw color-mix(in srgb,var(--accent) 25%,transparent)}}
+@keyframes k-blink{50%{opacity:0}}
+@keyframes k-ping{from{transform:scale(1);opacity:.7}to{transform:scale(2.4);opacity:0}}
+.active .float{animation:k-float 3s ease-in-out infinite}
+.active .bob{animation:k-bob 1s ease-in-out infinite}
+.active .pulse{animation:k-pulse 2s ease-in-out infinite}
+.active .spin{animation:k-spin 2s linear infinite}
+.active .wiggle{animation:k-wiggle 1s ease-in-out infinite}
+.active .glow{animation:k-glow 2s ease-in-out infinite}
+.active .blink{animation:k-blink 1s steps(1) infinite}
+svg .spin,svg .wiggle,svg .pulse{transform-box:fill-box;transform-origin:center}
+
+/* Ping ring behind an element (notification dot, live badge, tap target) */
+.ping{position:relative}
+.ping::after{content:"";position:absolute;inset:0;border-radius:inherit;border:.25cqw solid var(--accent);opacity:0;pointer-events:none}
+.active .ping::after{animation:k-ping 1s var(--d,0s) ease-out infinite}
+
+/* ---------- 6. Draw-on SVG (paths/shapes need pathLength="1"; kit icons and engine arrows have it) ---------- */
+@keyframes k-draw{from{stroke-dashoffset:1;opacity:0}2%{opacity:1}}
+@keyframes k-head{from{opacity:0;transform:scale(.2)}}
+.draw,.draw path,.draw circle,.draw rect,.draw ellipse,.draw line,.draw polyline,.draw polygon,
+path.link-path{stroke-dasharray:1 1}
+.active .draw:not(svg),.active svg.draw path:not(.arrow-head),.active svg.draw :is(circle,rect,ellipse,line,polyline,polygon),
+.active svg.draw use,.active .link-path{animation:k-draw var(--dd,.8s) var(--d,0s) both cubic-bezier(.6,0,.3,1)}
+.active .arrow-head{animation:k-head .25s calc(var(--d,0s) + var(--dd,.8s) * .9) both cubic-bezier(.3,1.5,.5,1);transform-box:fill-box;transform-origin:center}
+.arrow-head{fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* Arrows: <svg class="arrow draw" viewBox="0 0 200 100" style="--d:.5s"><path data-arrow d="M10 80C60 10 140 10 190 50"/></svg> */
+svg.arrow{overflow:visible;fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+svg.arrow.dashed path:not(.arrow-head){stroke-dasharray:.03 .03}
+/* Connectors: <svg class="link draw" data-connect="#a #b" style="--d:1s"></svg> (direct child of .scene) */
+svg.link{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1;
+         fill:none;stroke:var(--accent);stroke-width:.32cqw;stroke-linecap:round;stroke-linejoin:round}
+svg.link .arrow-head{stroke-width:.32cqw}
+/* Flowing dashes (data moving along a line): add class "flow" */
+@keyframes k-flow{to{stroke-dashoffset:-.2}}
+.active svg.flow path:not(.arrow-head){stroke-dasharray:.04 .03;animation:k-fade .4s var(--d,0s) both,k-flow 1s var(--d,0s) linear infinite}
+
+/* ---------- 7. Icons ---------- */
+.icon{width:var(--s,4cqw);height:var(--s,4cqw);flex:none;overflow:visible;fill:none;stroke:currentColor;stroke-width:2;
+      stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+.icon.fill{fill:currentColor}
+.icon-tile{display:inline-grid;place-items:center;width:var(--t,8cqw);height:var(--t,8cqw);border-radius:28%;
+           background:var(--tint);color:var(--accent);--s:calc(var(--t,8cqw) * .5)}
+.icon-tile.solid{background:var(--accent);color:var(--on-accent)}
+.icon-tile.round{border-radius:50%}
+.icon-tile.good{background:var(--good-bg);color:var(--good)} .icon-tile.bad{background:var(--bad-bg);color:var(--bad)}
+
+/* ---------- 8. Type ---------- */
+.kicker{font-family:var(--mono);font-size:max(9px,1.4cqw);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.h1{font-family:var(--display);font-size:max(26px,8cqw);line-height:1;font-weight:700;letter-spacing:-.02em;margin:0}
+.h2{font-family:var(--display);font-size:max(20px,4.6cqw);line-height:1.05;font-weight:700;margin:0}
+.h3{font-family:var(--display);font-size:max(14px,2.6cqw);line-height:1.15;font-weight:700;margin:0}
+.lead{font-size:max(12px,2cqw);color:var(--muted);margin:0}
+.mono{font-family:var(--mono)}
+.hl{color:var(--accent)}
+.mark{padding:0 .06em;margin:0 -.06em;-webkit-box-decoration-break:clone;box-decoration-break:clone;background:linear-gradient(transparent 62%,color-mix(in srgb,var(--accent) 30%,transparent) 62%,color-mix(in srgb,var(--accent) 30%,transparent) 90%,transparent 90%)}
+.active .mark{background-size:100% 100%;background-repeat:no-repeat;animation:k-mark .6s var(--d,0s) both cubic-bezier(.7,0,.2,1)}
+@keyframes k-mark{from{background-size:0 100%}}
+/* Engine typing: <span data-type="Hello" data-type-at="1" data-type-cps="16"></span>; caret while typing */
+.typing::after,.caret::after{content:"";display:inline-block;width:.08em;height:1em;margin-left:.06em;vertical-align:-.12em;background:var(--accent)}
+.caret::after{animation:k-blink 1s steps(1) infinite}
+
+/* ---------- 9. UI widgets ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:2cqw 2.4cqw;box-shadow:var(--shadow)}
+.pill{display:inline-flex;align-items:center;gap:.6cqw;padding:.45cqw 1.3cqw;border-radius:99px;font-size:max(9px,1.5cqw);font-weight:600;
+      background:var(--tint);color:var(--accent);white-space:nowrap}
+.pill.good{background:var(--good-bg);color:var(--good)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill .icon{--s:1.6cqw}
+.stamp{display:inline-block;padding:.5cqw 1.5cqw;border:.3cqw solid var(--bad);color:var(--bad);font-family:var(--mono);
+       font-weight:700;font-size:max(10px,2cqw);letter-spacing:.08em;transform:rotate(-6deg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.8cqw;padding:1cqw 2.2cqw;border-radius:1cqw;border:0;
+     font:600 max(10px,1.7cqw)/1 var(--sans);background:var(--accent);color:var(--on-accent);white-space:nowrap;
+     transition:transform .12s ease-out,filter .12s ease-out;box-shadow:0 .35cqw 0 color-mix(in srgb,var(--accent) 60%,#000)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 .15cqw var(--line)}
+.btn .icon{--s:2cqw}
+.pressed{transform:scale(.94) translateY(.2cqw)!important;filter:brightness(.92)}
+.input{display:flex;align-items:center;gap:1cqw;min-width:30cqw;padding:1.1cqw 1.4cqw;border-radius:1cqw;text-align:left;
+       background:var(--surface);border:.15cqw solid var(--line);font-size:max(10px,1.7cqw);color:var(--ink)}
+.input .icon{--s:2cqw;color:var(--muted)}
+.input.focus,.input[data-now~="focus"]{border-color:var(--accent);box-shadow:0 0 0 .4cqw color-mix(in srgb,var(--accent) 22%,transparent)}
+.input .ph{color:var(--muted)}
+.toggle{position:relative;display:inline-block;width:6cqw;height:3.4cqw;border-radius:99px;background:color-mix(in srgb,var(--muted) 38%,transparent);transition:background .25s}
+.toggle::after{content:"";position:absolute;top:.4cqw;left:.4cqw;width:2.6cqw;height:2.6cqw;border-radius:50%;background:#fff;
+               box-shadow:0 .15cqw .4cqw rgba(0,0,0,.25);transition:transform .25s cubic-bezier(.3,1.4,.5,1)}
+.toggle[data-now~="on"]{background:var(--good)}
+.toggle[data-now~="on"]::after{transform:translateX(2.6cqw)}
+.check{display:inline-grid;place-items:center;width:3cqw;height:3cqw;border-radius:.7cqw;border:.2cqw solid var(--line);
+       color:var(--on-accent);transition:background .2s,border-color .2s}
+.check .icon{--s:2cqw;opacity:0;transition:opacity .2s}
+.check[data-now~="on"]{background:var(--good);border-color:var(--good)}
+.check[data-now~="on"] .icon{opacity:1}
+.avatar{display:inline-grid;place-items:center;width:var(--a,5cqw);height:var(--a,5cqw);border-radius:50%;flex:none;overflow:hidden;
+        background:var(--accent-2);color:#fff;font-weight:700;font-size:calc(var(--a,5cqw) * .4)}
+.badge-dot{position:absolute;top:-.5cqw;right:-.5cqw;min-width:2.2cqw;height:2.2cqw;padding:0 .5cqw;border-radius:99px;
+           background:var(--bad);color:#fff;font:700 max(8px,1.3cqw)/2.2cqw var(--sans);text-align:center}
+.toast{display:flex;align-items:center;gap:1.4cqw;padding:1.3cqw 1.8cqw;border-radius:1.4cqw;text-align:left;min-width:32cqw;
+       background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);font-size:max(10px,1.6cqw)}
+.toast b{display:block;font-size:max(10px,1.7cqw)} .toast small{color:var(--muted)}
+.chat{display:flex;flex-direction:column;gap:1cqw;width:100%}
+.bubble{max-width:75%;padding:1cqw 1.5cqw;border-radius:1.6cqw;font-size:max(10px,1.6cqw);line-height:1.3;text-align:left}
+.bubble.them{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:.4cqw}
+.bubble.me{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:.4cqw}
+.dots{display:inline-flex;gap:.5cqw;padding:.4cqw 0}
+.dots i{width:.9cqw;height:.9cqw;border-radius:50%;background:currentColor;opacity:.5}
+.active .dots i{animation:k-bob 1s ease-in-out infinite}
+.dots i:nth-child(2){animation-delay:.15s!important} .dots i:nth-child(3){animation-delay:.3s!important}
+/* Progress: style="--p:70" (0-100) or data-tween="--p 0 70 .5 1.2" */
+.bar{width:var(--w,30cqw);height:var(--h,1.2cqw);border-radius:99px;background:color-mix(in srgb,var(--muted) 22%,transparent);overflow:hidden}
+.bar>i{display:block;height:100%;width:calc(var(--p,0) * 1%);border-radius:inherit;background:var(--accent)}
+.ring{width:var(--s,12cqw);height:var(--s,12cqw);transform:rotate(-90deg);fill:none;stroke-width:10;stroke-linecap:round}
+.ring .track{stroke:color-mix(in srgb,var(--muted) 22%,transparent)}
+.ring .val{stroke:var(--accent);stroke-dasharray:1 1;stroke-dashoffset:calc(1 - var(--p,0) / 100)}
+.kbd{display:inline-block;padding:.3cqw .9cqw;border-radius:.6cqw;border:.15cqw solid var(--line);border-bottom-width:.4cqw;
+     font:600 max(9px,1.5cqw)/1.2 var(--mono);background:var(--surface)}
+.skeleton{border-radius:.6cqw;height:1.4cqw;background:color-mix(in srgb,var(--muted) 22%,transparent)}
+.divider{height:1px;width:100%;background:var(--line)}
+
+/* Device frames */
+.phone{position:relative;width:var(--w,24cqw);aspect-ratio:9/19;border-radius:3.6cqw;padding:1cqw;background:#111;
+       box-shadow:var(--shadow),inset 0 0 0 .25cqw #333;flex:none}
+.phone>.screen{position:relative;width:100%;height:100%;border-radius:2.7cqw;overflow:hidden;background:var(--surface);
+               display:flex;flex-direction:column;gap:1cqw;padding:4cqw 1.6cqw 1.6cqw;text-align:left}
+.phone>.screen::before{content:"";position:absolute;top:1cqw;left:50%;width:7cqw;height:1.8cqw;margin-left:-3.5cqw;border-radius:99px;background:#111}
+.browser{width:var(--w,60cqw);border-radius:1.2cqw;overflow:hidden;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);text-align:left}
+.browser>.bar-top{display:flex;align-items:center;gap:.7cqw;padding:1cqw 1.4cqw;background:color-mix(in srgb,var(--line) 35%,var(--surface));border-bottom:1px solid var(--line)}
+.browser>.bar-top i{width:1.1cqw;height:1.1cqw;border-radius:50%;background:var(--line)}
+.browser>.bar-top i:nth-child(1){background:#FF5F57} .browser>.bar-top i:nth-child(2){background:#FEBC2E} .browser>.bar-top i:nth-child(3){background:#28C840}
+.browser>.bar-top .url{flex:1;margin-left:1cqw;padding:.4cqw 1cqw;border-radius:99px;background:var(--surface);font:max(8px,1.2cqw) var(--mono);color:var(--muted)}
+.browser>.body{padding:2cqw}
+.terminal{width:var(--w,56cqw);border-radius:1.2cqw;background:#16161A;color:#E8E6E3;padding:1.8cqw 2.2cqw;text-align:left;
+          font:max(10px,1.7cqw)/1.6 var(--mono);box-shadow:var(--shadow)}
+.terminal .ok{color:#4ADE80} .terminal .dim{color:#8B8B9A} .terminal .hl{color:#F9A8D4}
+
+/* ---------- 10. Cursor (engine-driven; direct child of .scene) ---------- */
+.cursor{position:absolute;left:0;top:0;width:var(--s,2.6cqw);z-index:50;pointer-events:none;transform-origin:0 0;
+        filter:drop-shadow(0 .25cqw .4cqw rgba(0,0,0,.3))}
+.cursor svg{display:block;width:100%;height:auto;overflow:visible}
+.cursor .cursor-ripple{position:absolute;left:0;top:0;width:5cqw;height:5cqw;margin:-2.5cqw 0 0 -2.5cqw;border-radius:50%;
+        border:.3cqw solid var(--accent);opacity:0;background:color-mix(in srgb,var(--accent) 20%,transparent)}
+
+/* ---------- 11. Confetti (engine-driven; direct child of .scene) ---------- */
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:40}
+.confetti>i{position:absolute;left:0;top:0;width:1cqw;height:.6cqw;border-radius:.1cqw}
+.confetti>i.c{width:.8cqw;height:.8cqw;border-radius:50%}
+
+/* ---------- 12. Character "Blip" (<div data-character data-now="happy wave"></div>) ---------- */
+.char{position:relative;display:inline-block;flex:none;width:var(--size,16cqw);aspect-ratio:200/270;
+      --body:var(--shirt,var(--accent));--belly:rgba(255,255,255,.28);--limb:var(--ch-line);--foot:var(--ch-line);
+      --bulb:var(--warn,#E9B949);--leaf:#5FA36F;--cheek:#FF8F8F;--ch-ink:#1E1E1E;--ch-line:#1E1E1E}
+.char>svg{display:block;width:100%;height:100%;overflow:visible}
+.char.flip>svg{transform:scaleX(-1)}
+.ch *{transform-box:view-box}
+.ch-line{stroke:var(--ch-line);stroke-width:3.5;stroke-linejoin:round}
+.ch-body{fill:var(--body)}
+.ch-belly{fill:var(--belly)}
+.ch-shine{fill:none;stroke:rgba(255,255,255,.45);stroke-width:5;stroke-linecap:round}
+.ch-limb{fill:none;stroke:var(--limb);stroke-width:6;stroke-linecap:round}
+.ch-hand{fill:var(--body)}
+.ch-foot{fill:var(--foot)}
+.ch-stalk{fill:none;stroke:var(--ch-line);stroke-width:4;stroke-linecap:round}
+.ch-bulb{fill:var(--bulb)} .ch-leaf{fill:var(--leaf)}
+.ch-sprout{display:none}
+.char[data-top="sprout"] .ch-sprout{display:inline}
+.char:is([data-top="sprout"],[data-top="none"]) .ch-antenna{display:none}
+.ch-shadow{fill:rgba(0,0,0,.12);transform-box:fill-box;transform-origin:center}
+.ch-cheek{fill:var(--cheek);opacity:.5}
+.ch-eye{transform-box:fill-box;transform-origin:center}
+.ch-eye ellipse{fill:var(--ch-ink)} .ch-glint{fill:#fff}
+.ch-eye-happy{fill:none;stroke:var(--ch-ink);stroke-width:3.5;stroke-linecap:round;opacity:0}
+.ch-brow{fill:none;stroke:var(--ch-ink);stroke-width:3.5;stroke-linecap:round;opacity:0;transform-box:fill-box;transform-origin:center;transition:transform .2s,opacity .2s}
+.ch-glasses{display:none;fill:rgba(255,255,255,.3);stroke:var(--ch-ink);stroke-width:3}
+.char[data-acc~="glasses"] .ch-glasses{display:inline}
+.ch-m{fill:none;stroke:var(--ch-ink);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.ch-m-grin,.ch-m-o,.ch-m-talk{fill:#7A2E2E}
+.ch-m-talk{transform-box:fill-box;transform-origin:center}
+.ch-eyes{transition:transform .2s ease-out}
+
+.ch-arm-l{transform-origin:52px 150px}  .ch-arm-r{transform-origin:148px 150px}
+.ch-fore-l{transform-origin:38px 172px} .ch-fore-r{transform-origin:162px 172px}
+.ch-leg-l{transform-origin:84px 210px}  .ch-leg-r{transform-origin:116px 210px}
+.ch-head{transform-origin:100px 150px}  .ch-antenna,.ch-sprout{transform-origin:100px 74px}
+.ch-upper{transform-origin:100px 215px} .ch-all{transform-origin:100px 258px}
+
+/* idle: breathe (squash), blink, face sway, antenna wobble (always on) */
+@keyframes ch-breathe{50%{transform:scale(1.015,.985)}}
+@keyframes ch-blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+@keyframes ch-sway{0%,100%{transform:rotate(-1.5deg)}50%{transform:rotate(1.5deg)}}
+@keyframes ch-wobble{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+.active .ch-upper{animation:ch-breathe 2s ease-in-out infinite}
+.active .ch-eye{animation:ch-blink 4s infinite}
+.active .ch-head{animation:ch-sway 4s ease-in-out infinite}
+.active :is(.ch-antenna,.ch-sprout){animation:ch-wobble 2s ease-in-out infinite}
+
+/* moods: happy (default) excited laugh neutral sad surprised angry wink talk */
+.char .ch-m-smile{opacity:1}
+.char:is([data-now~="excited"],[data-now~="laugh"],[data-now~="cheer"],[data-now~="neutral"],[data-now~="sad"],[data-now~="surprised"],[data-now~="angry"],[data-now~="talk"],[data-now~="think"]) .ch-m-smile{opacity:0}
+.char:is([data-now~="excited"],[data-now~="laugh"],[data-now~="cheer"]) .ch-m-grin{opacity:1}
+.char:is([data-now~="neutral"],[data-now~="angry"],[data-now~="think"]) .ch-m-flat{opacity:1}
+.char[data-now~="sad"] .ch-m-sad{opacity:1}
+.char[data-now~="surprised"] .ch-m-o{opacity:1}
+.char[data-now~="laugh"] .ch-eyes{opacity:0}
+.char[data-now~="laugh"] .ch-eye-happy{opacity:1}
+.char:is([data-now~="sad"],[data-now~="angry"],[data-now~="surprised"],[data-now~="think"]) .ch-brow{opacity:1}
+.char[data-now~="sad"] .ch-brow-l{transform:rotate(-16deg) translateY(1px)}
+.char[data-now~="sad"] .ch-brow-r{transform:rotate(16deg) translateY(1px)}
+.char[data-now~="angry"] .ch-brow-l{transform:rotate(18deg) translateY(4px)}
+.char[data-now~="angry"] .ch-brow-r{transform:rotate(-18deg) translateY(4px)}
+.char[data-now~="surprised"] .ch-brow{transform:translateY(-5px)}
+.char[data-now~="think"] .ch-brow-r{transform:translateY(-4px) rotate(-8deg)}
+.char[data-now~="surprised"] .ch-eye ellipse{rx:7;ry:9.5}
+.char[data-now~="wink"] .ch-eye-r{transform:scaleY(.12);animation:none}
+.char[data-now~="sad"] .ch-cheek{opacity:0}
+.char:is([data-now~="excited"],[data-now~="laugh"],[data-now~="cheer"]) .ch-cheek{opacity:.85}
+.char[data-now~="talk"] .ch-m-talk{opacity:1;animation:ch-talk .22s ease-in-out infinite alternate}
+@keyframes ch-talk{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
+
+/* looks */
+.char[data-now~="look-left"] .ch-eyes{transform:translateX(-5px)}
+.char[data-now~="look-right"] .ch-eyes{transform:translateX(5px)}
+.char:is([data-now~="look-up"],[data-now~="think"]) .ch-eyes{transform:translate(4px,-5px)}
+.char[data-now~="look-down"] .ch-eyes{transform:translateY(4px)}
+
+/* poses: --rot = upper arm (shoulder), --fr = forearm (elbow). One arm pose at a time. */
+@keyframes ch-pose{to{transform:rotate(var(--rot))}}
+@keyframes ch-fpose{to{transform:rotate(var(--fr))}}
+@keyframes ch-tilt{to{transform:rotate(var(--tilt))}}
+@keyframes ch-fwave{from{transform:rotate(-58deg)}to{transform:rotate(-14deg)}}
+@keyframes ch-swing{from{transform:rotate(var(--rot))}to{transform:rotate(calc(var(--rot) * -1))}}
+@keyframes ch-jitter{from{transform:rotate(var(--fr))}to{transform:rotate(calc(var(--fr) + 12deg))}}
+@keyframes ch-hop{0%,100%{transform:translateY(0)}45%{transform:translateY(-9%)}}
+@keyframes ch-jump{0%{transform:translateY(0) scale(1,1)}15%{transform:translateY(0) scale(1.08,.88)}45%{transform:translateY(-14%) scale(.95,1.06)}75%{transform:translateY(0) scale(1.06,.92)}100%{transform:translateY(0)}}
+@keyframes ch-shadow-hop{0%,100%{transform:scaleX(1);opacity:1}45%{transform:scaleX(.7);opacity:.6}}
+@keyframes ch-shadow-jump{0%,15%,75%,100%{transform:scaleX(1);opacity:1}45%{transform:scaleX(.6);opacity:.5}}
+@keyframes ch-nod{from{transform:rotate(-5deg) translateY(-2px)}to{transform:rotate(5deg) translateY(2px)}}
+@keyframes ch-no{from{transform:translateX(-5px)}to{transform:translateX(5px)}}
+@keyframes ch-step-l{from{transform:rotate(18deg)}to{transform:rotate(-18deg)}}
+@keyframes ch-step-r{from{transform:rotate(-18deg)}to{transform:rotate(18deg)}}
+.ch-arm,.ch-fore,.ch-head{--pose:.38s both cubic-bezier(.3,1.35,.5,1)}
+.char[data-now~="wave"] .ch-arm-r{--rot:-105deg;animation:ch-pose var(--pose)}
+.char[data-now~="wave"] .ch-fore-r{--fr:-40deg;animation:ch-fpose var(--pose),ch-fwave .32s .38s ease-in-out infinite alternate}
+.char[data-now~="point"] .ch-arm-r{--rot:-68deg;animation:ch-pose var(--pose)}
+.char[data-now~="point"] .ch-fore-r{--fr:-8deg;animation:ch-fpose var(--pose)}
+.char[data-now~="point-up"] .ch-arm-r{--rot:-122deg;animation:ch-pose var(--pose)}
+.char[data-now~="point-up"] .ch-fore-r{--fr:-25deg;animation:ch-fpose var(--pose)}
+.char[data-now~="point-left"] .ch-arm-l{--rot:68deg;animation:ch-pose var(--pose)}
+.char[data-now~="point-left"] .ch-fore-l{--fr:8deg;animation:ch-fpose var(--pose)}
+.char[data-now~="present"] .ch-arm-r{--rot:-40deg;animation:ch-pose var(--pose)}
+.char[data-now~="present"] .ch-fore-r{--fr:-25deg;animation:ch-fpose var(--pose)}
+.char[data-now~="present"] .ch-arm-l{--rot:40deg;animation:ch-pose var(--pose)}
+.char[data-now~="present"] .ch-fore-l{--fr:25deg;animation:ch-fpose var(--pose)}
+.char[data-now~="cheer"] .ch-arm-r{--rot:-125deg;animation:ch-pose var(--pose)}
+.char[data-now~="cheer"] .ch-fore-r{--fr:18deg;animation:ch-fpose var(--pose)}
+.char[data-now~="cheer"] .ch-arm-l{--rot:125deg;animation:ch-pose var(--pose)}
+.char[data-now~="cheer"] .ch-fore-l{--fr:-18deg;animation:ch-fpose var(--pose)}
+.char:is([data-now~="cheer"],[data-now~="bounce"]) .ch-all{animation:ch-hop .5s .2s ease-in-out infinite}
+.char:is([data-now~="cheer"],[data-now~="bounce"]) .ch-shadow{animation:ch-shadow-hop .5s .2s ease-in-out infinite}
+.char[data-now~="shrug"] .ch-arm-r{--rot:-30deg;animation:ch-pose var(--pose)}
+.char[data-now~="shrug"] .ch-fore-r{--fr:-75deg;animation:ch-fpose var(--pose)}
+.char[data-now~="shrug"] .ch-arm-l{--rot:30deg;animation:ch-pose var(--pose)}
+.char[data-now~="shrug"] .ch-fore-l{--fr:75deg;animation:ch-fpose var(--pose)}
+.char[data-now~="shrug"] .ch-head{--tilt:7deg;animation:ch-tilt var(--pose)}
+.char[data-now~="think"] .ch-arm-r{--rot:60deg;animation:ch-pose var(--pose)}
+.char[data-now~="think"] .ch-fore-r{--fr:96deg;animation:ch-fpose var(--pose)}
+.char[data-now~="think"] .ch-head{--tilt:-6deg;animation:ch-tilt var(--pose)}
+.char[data-now~="type"] .ch-arm-r{--rot:45deg;animation:ch-pose var(--pose)}
+.char[data-now~="type"] .ch-fore-r{--fr:56deg;animation:ch-jitter .12s ease-in-out infinite alternate}
+.char[data-now~="type"] .ch-arm-l{--rot:-45deg;animation:ch-pose var(--pose)}
+.char[data-now~="type"] .ch-fore-l{--fr:-68deg;animation:ch-jitter .12s .06s ease-in-out infinite alternate}
+.char[data-now~="clap"] .ch-arm-r{--rot:70deg;animation:ch-pose var(--pose)}
+.char[data-now~="clap"] .ch-fore-r{--fr:58deg;animation:ch-jitter .2s ease-in-out infinite alternate}
+.char[data-now~="clap"] .ch-arm-l{--rot:-70deg;animation:ch-pose var(--pose)}
+.char[data-now~="clap"] .ch-fore-l{--fr:-70deg;animation:ch-jitter .2s ease-in-out infinite alternate}
+.char[data-now~="nod"] .ch-head{animation:ch-nod .4s ease-in-out infinite alternate}
+.char[data-now~="no"] .ch-head{animation:ch-no .18s ease-in-out infinite alternate}
+.char[data-now~="jump"] .ch-all{animation:ch-jump .7s both cubic-bezier(.3,.6,.4,1)}
+.char[data-now~="jump"] .ch-shadow{animation:ch-shadow-jump .7s both}
+.char[data-now~="walk"] .ch-leg-l{animation:ch-step-l .25s ease-in-out infinite alternate}
+.char[data-now~="walk"] .ch-leg-r{animation:ch-step-r .25s ease-in-out infinite alternate}
+.char[data-now~="walk"] .ch-arm-l{--rot:-14deg;animation:ch-swing .25s ease-in-out infinite alternate}
+.char[data-now~="walk"] .ch-arm-r{--rot:14deg;animation:ch-swing .25s ease-in-out infinite alternate}
+.char[data-now~="walk"] .ch-upper{animation:ch-breathe .25s ease-in-out infinite}
+
+/* Speech / thought bubble next to a character */
+.say{position:relative;display:inline-block;padding:1cqw 1.6cqw;border-radius:1.6cqw;background:var(--surface);
+     border:.2cqw solid var(--ink);font-size:max(10px,1.8cqw);font-weight:600;white-space:nowrap}
+.say::after{content:"";position:absolute;bottom:-1.1cqw;left:2.4cqw;width:1.8cqw;height:1.8cqw;background:inherit;
+     border-right:.2cqw solid var(--ink);border-bottom:.2cqw solid var(--ink);transform:rotate(45deg) skew(10deg,10deg)}
+.say.right::after{left:auto;right:2.4cqw}
+
+@media (prefers-reduced-motion: reduce){ .scene *,.scene{animation:none!important;transition:none!important} }
+
+/* ---------- 13. Presenter controls (optional #ctl) ---------- */
+.ctl{display:flex;align-items:center;gap:8px;margin-top:10px;font:13px var(--mono);color:var(--ink)}
+.ctl button{font:inherit;padding:6px 10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;cursor:pointer}
+.ctl input{flex:1;accent-color:var(--accent)}
+</style>
+<style>
+.stage{aspect-ratio:auto!important;height:auto;padding:3cqw}
+.scene{position:static!important;display:flex!important;padding:2cqw 0}
+.grid{display:grid;grid-template-columns:repeat(10,1fr);gap:1.4cqw;width:100%}
+.chars{display:grid;grid-template-columns:repeat(6,1fr);gap:1.4cqw;width:100%}
+.g{display:flex;flex-direction:column;align-items:center;gap:.6cqw;font-size:1.1cqw;color:var(--muted)}
+.g .icon{--s:4cqw;color:var(--ink)}
+.chars .char{--size:11cqw}
+</style></head><body>
+<svg id="kit-icons" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><symbol id="i-check" viewBox="0 0 24 24"><path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path pathLength="1" d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path pathLength="1" d="M12 5v14M5 12h14"/></symbol><symbol id="i-minus" viewBox="0 0 24 24"><path pathLength="1" d="M5 12h14"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle pathLength="1" cx="11" cy="11" r="6.5"/><path pathLength="1" d="M16 16l4.5 4.5"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><path pathLength="1" d="M20 12a8 8 0 1 1-2.3-5.6"/><path pathLength="1" d="M20 4v4.5h-4.5"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path pathLength="1" d="M12 4v11M7 10.5l5 5 5-5M4.5 20h15"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path pathLength="1" d="M12 16V5M7 9.5l5-5 5 5M4.5 20h15"/></symbol><symbol id="i-send" viewBox="0 0 24 24"><path pathLength="1" d="M21 3L10 14"/><path pathLength="1" d="M21 3l-6.5 18-4.5-7-7-4.5z"/></symbol><symbol id="i-share" viewBox="0 0 24 24"><circle pathLength="1" cx="6" cy="12" r="2.5"/><circle pathLength="1" cx="18" cy="6" r="2.5"/><circle pathLength="1" cx="18" cy="18" r="2.5"/><path pathLength="1" d="M8.3 10.8l7.4-3.6M8.3 13.2l7.4 3.6"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path pathLength="1" d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path pathLength="1" d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol><symbol id="i-filter" viewBox="0 0 24 24"><path pathLength="1" d="M3.5 4.5h17l-6.5 8v6.5l-4 2v-8.5z"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path pathLength="1" d="M8 5v14l11-7z"/></symbol><symbol id="i-pause" viewBox="0 0 24 24"><path pathLength="1" d="M8 5v14M16 5v14"/></symbol><symbol id="i-thumbs-up" viewBox="0 0 24 24"><path pathLength="1" d="M7 10v10H4V10z"/><path pathLength="1" d="M7 10l4-7c1.7 0 2.7 1.2 2.4 2.8L13 9h5.3a2 2 0 0 1 2 2.3l-1.2 7a2 2 0 0 1-2 1.7H7"/></symbol><symbol id="i-arrow-right" viewBox="0 0 24 24"><path pathLength="1" d="M4 12h16M14 6l6 6-6 6"/></symbol><symbol id="i-arrow-left" viewBox="0 0 24 24"><path pathLength="1" d="M20 12H4M10 6l-6 6 6 6"/></symbol><symbol id="i-arrow-up" viewBox="0 0 24 24"><path pathLength="1" d="M12 20V4M6 10l6-6 6 6"/></symbol><symbol id="i-arrow-down" viewBox="0 0 24 24"><path pathLength="1" d="M12 4v16M6 14l6 6 6-6"/></symbol><symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path pathLength="1" d="M7 17L17 7M8 7h9v9"/></symbol><symbol id="i-chevron-right" viewBox="0 0 24 24"><path pathLength="1" d="M9 6l6 6-6 6"/></symbol><symbol id="i-chevron-down" viewBox="0 0 24 24"><path pathLength="1" d="M6 9l6 6 6-6"/></symbol><symbol id="i-trending-up" viewBox="0 0 24 24"><path pathLength="1" d="M3 17l6-6 4 4 8-8"/><path pathLength="1" d="M15 7h6v6"/></symbol><symbol id="i-cursor" viewBox="0 0 24 24"><path pathLength="1" d="M5 3.5l13.5 6.5-6 2-3 6z"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle pathLength="1" cx="12" cy="8" r="4"/><path pathLength="1" d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><circle pathLength="1" cx="9" cy="8" r="3.5"/><path pathLength="1" d="M2.5 20c0-3.8 2.9-6 6.5-6s6.5 2.2 6.5 6"/><circle pathLength="1" cx="17" cy="9" r="2.5"/><path pathLength="1" d="M16.5 14.2c2.9.2 5 2.2 5 5.3"/></symbol><symbol id="i-smile" viewBox="0 0 24 24"><circle pathLength="1" cx="12" cy="12" r="9"/><path pathLength="1" d="M8.5 14.5c1.8 2 5.2 2 7 0"/><path pathLength="1" d="M9 9.5h.01M15 9.5h.01"/></symbol><symbol id="i-heart" viewBox="0 0 24 24"><path pathLength="1" d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></symbol><symbol id="i-star" viewBox="0 0 24 24"><path pathLength="1" d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path pathLength="1" d="M4 5h16v11H9l-5 4z"/></symbol><symbol id="i-mail" viewBox="0 0 24 24"><rect pathLength="1" x="3" y="5" width="18" height="14" rx="2"/><path pathLength="1" d="M3.5 6.5l8.5 6.5 8.5-6.5"/></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path pathLength="1" d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path pathLength="1" d="M10 21h4"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><rect pathLength="1" x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path pathLength="1" d="M11 18.5h2"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><rect pathLength="1" x="9" y="3" width="6" height="11" rx="3"/><path pathLength="1" d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol><symbol id="i-video" viewBox="0 0 24 24"><rect pathLength="1" x="2.5" y="6" width="13" height="12" rx="2"/><path pathLength="1" d="M15.5 10.5l6-3.5v10l-6-3.5"/></symbol><symbol id="i-music" viewBox="0 0 24 24"><path pathLength="1" d="M9 18V5l11-2v13"/><circle pathLength="1" cx="6.5" cy="18" r="2.5"/><circle pathLength="1" cx="17.5" cy="16" r="2.5"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect pathLength="1" x="5" y="11" width="14" height="10" rx="2"/><path pathLength="1" d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol><symbol id="i-unlock" viewBox="0 0 24 24"><rect pathLength="1" x="5" y="11" width="14" height="10" rx="2"/><path pathLength="1" d="M8 11V8a4 4 0 0 1 7.5-2"/></symbol><symbol id="i-shield" viewBox="0 0 24 24"><path pathLength="1" d="M12 3l7 3v5c0 5-3.2 8.6-7 10-3.8-1.4-7-5-7-10V6z"/></symbol><symbol id="i-shield-check" viewBox="0 0 24 24"><path pathLength="1" d="M12 3l7 3v5c0 5-3.2 8.6-7 10-3.8-1.4-7-5-7-10V6z"/><path pathLength="1" d="M9 12l2 2 4-4"/></symbol><symbol id="i-key" viewBox="0 0 24 24"><circle pathLength="1" cx="8" cy="15" r="4.5"/><path pathLength="1" d="M11.2 11.8L20 3M16.5 6.5l3 3M14 9l2 2"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path pathLength="1" d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle pathLength="1" cx="12" cy="12" r="3"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path pathLength="1" d="M12 3.5L2.5 20h19z"/><path pathLength="1" d="M12 10v4.5M12 17.3h.01"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle pathLength="1" cx="12" cy="12" r="9"/><path pathLength="1" d="M12 11v5.5M12 7.7h.01"/></symbol><symbol id="i-chart-bar" viewBox="0 0 24 24"><path pathLength="1" d="M4 20h16M7 16v-5M12 16V7M17 16V8"/></symbol><symbol id="i-chart-line" viewBox="0 0 24 24"><path pathLength="1" d="M4 4v16h16"/><path pathLength="1" d="M7 15l4-4 3 3 5-6"/></symbol><symbol id="i-pie" viewBox="0 0 24 24"><path pathLength="1" d="M12 3a9 9 0 1 0 9 9h-9z"/><path pathLength="1" d="M14.5 2.8A9 9 0 0 1 21.2 9.5h-6.7z"/></symbol><symbol id="i-target" viewBox="0 0 24 24"><circle pathLength="1" cx="12" cy="12" r="9"/><circle pathLength="1" cx="12" cy="12" r="5"/><circle pathLength="1" cx="12" cy="12" r="1.5"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle pathLength="1" cx="12" cy="12" r="9"/><path pathLength="1" d="M12 7v5l3.5 2"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect pathLength="1" x="3.5" y="5" width="17" height="15.5" rx="2"/><path pathLength="1" d="M3.5 10h17M8 3v4M16 3v4"/></symbol><symbol id="i-grid" viewBox="0 0 24 24"><rect pathLength="1" x="3.5" y="3.5" width="7" height="7" rx="1"/><rect pathLength="1" x="13.5" y="3.5" width="7" height="7" rx="1"/><rect pathLength="1" x="3.5" y="13.5" width="7" height="7" rx="1"/><rect pathLength="1" x="13.5" y="13.5" width="7" height="7" rx="1"/></symbol><symbol id="i-layers" viewBox="0 0 24 24"><path pathLength="1" d="M12 3L2.5 8 12 13l9.5-5z"/><path pathLength="1" d="M2.5 12.5l9.5 5 9.5-5M2.5 16.5l9.5 5 9.5-5"/></symbol><symbol id="i-cart" viewBox="0 0 24 24"><path pathLength="1" d="M3 4h2.5l2.2 10.5h10.3L20 7H7"/><circle pathLength="1" cx="9.5" cy="19" r="1.5"/><circle pathLength="1" cx="17" cy="19" r="1.5"/></symbol><symbol id="i-card" viewBox="0 0 24 24"><rect pathLength="1" x="2.5" y="5.5" width="19" height="13" rx="2"/><path pathLength="1" d="M2.5 10h19M6 15h4"/></symbol><symbol id="i-wallet" viewBox="0 0 24 24"><path pathLength="1" d="M19 7V5H5a2 2 0 0 0 0 4h15v11H5a2 2 0 0 1-2-2V7"/><circle pathLength="1" cx="16" cy="14.5" r="1.2"/></symbol><symbol id="i-dollar" viewBox="0 0 24 24"><path pathLength="1" d="M12 3v18"/><path pathLength="1" d="M16.5 7.5c-.8-1.4-2.4-2-4.5-2-2.5 0-4.3 1.2-4.3 3.1 0 4.4 9 2.3 9 6.8 0 2-1.9 3.2-4.7 3.2-2.3 0-4-.8-4.8-2.3"/></symbol><symbol id="i-coin" viewBox="0 0 24 24"><circle pathLength="1" cx="12" cy="12" r="9"/><circle pathLength="1" cx="12" cy="12" r="5.5"/></symbol><symbol id="i-gift" viewBox="0 0 24 24"><rect pathLength="1" x="3.5" y="8" width="17" height="4" rx="1"/><path pathLength="1" d="M5 12v8.5h14V12M12 8v12.5"/><path pathLength="1" d="M12 8c-1.5-3-5-4-5.5-2S9 8 12 8c3 0 6-.5 5.5-2S13.5 5 12 8"/></symbol><symbol id="i-tag" viewBox="0 0 24 24"><path pathLength="1" d="M3.5 3.5h8l9 9-8 8-9-9z"/><circle pathLength="1" cx="8" cy="8" r="1.5"/></symbol><symbol id="i-trophy" viewBox="0 0 24 24"><path pathLength="1" d="M8 4h8v5a4 4 0 0 1-8 0z"/><path pathLength="1" d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/></symbol><symbol id="i-flag" viewBox="0 0 24 24"><path pathLength="1" d="M5 21V4"/><path pathLength="1" d="M5 4h12l-2 4 2 4H5"/></symbol><symbol id="i-bookmark" viewBox="0 0 24 24"><path pathLength="1" d="M6 3.5h12V21l-6-4-6 4z"/></symbol><symbol id="i-code" viewBox="0 0 24 24"><path pathLength="1" d="M8.5 7L3.5 12l5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15"/></symbol><symbol id="i-terminal" viewBox="0 0 24 24"><rect pathLength="1" x="3" y="4.5" width="18" height="15" rx="2"/><path pathLength="1" d="M7 9.5l3 2.5-3 2.5M12.5 15h4.5"/></symbol><symbol id="i-database" viewBox="0 0 24 24"><ellipse pathLength="1" cx="12" cy="5.5" rx="7.5" ry="2.5"/><path pathLength="1" d="M4.5 5.5v13c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-13"/><path pathLength="1" d="M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5"/></symbol><symbol id="i-server" viewBox="0 0 24 24"><rect pathLength="1" x="3.5" y="4" width="17" height="7" rx="1.5"/><rect pathLength="1" x="3.5" y="13" width="17" height="7" rx="1.5"/><path pathLength="1" d="M7 7.5h.01M7 16.5h.01"/></symbol><symbol id="i-cloud" viewBox="0 0 24 24"><path pathLength="1" d="M7 18.5a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5a4.5 4.5 0 0 1-.5 9z"/></symbol><symbol id="i-cpu" viewBox="0 0 24 24"><rect pathLength="1" x="6" y="6" width="12" height="12" rx="1.5"/><rect pathLength="1" x="9.5" y="9.5" width="5" height="5"/><path pathLength="1" d="M9 2.5V6M15 2.5V6M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5"/></symbol><symbol id="i-robot" viewBox="0 0 24 24"><rect pathLength="1" x="4.5" y="8" width="15" height="11" rx="3"/><path pathLength="1" d="M12 5v3M2.5 12.5v3M21.5 12.5v3"/><circle pathLength="1" cx="12" cy="4" r="1"/><circle pathLength="1" cx="9.5" cy="13.5" r="1.3"/><circle pathLength="1" cx="14.5" cy="13.5" r="1.3"/></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path pathLength="1" d="M18.75 10.13L21.14 10.91L21.14 13.09L18.75 13.87L18.09 15.45L19.23 17.69L17.69 19.23L15.45 18.09L13.87 18.75L13.09 21.14L10.91 21.14L10.13 18.75L8.55 18.09L6.31 19.23L4.77 17.69L5.91 15.45L5.25 13.87L2.86 13.09L2.86 10.91L5.25 10.13L5.91 8.55L4.77 6.31L6.31 4.77L8.55 5.91L10.13 5.25L10.91 2.86L13.09 2.86L13.87 5.25L15.45 5.91L17.69 4.77L19.23 6.31L18.09 8.55Z"/><circle pathLength="1" cx="12" cy="12" r="3"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path pathLength="1" d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle pathLength="1" cx="16" cy="7" r="2"/><circle pathLength="1" cx="10" cy="17" r="2"/></symbol><symbol id="i-wifi" viewBox="0 0 24 24"><path pathLength="1" d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.8 16a5 5 0 0 1 6.4 0M12 19.5h.01"/></symbol><symbol id="i-battery" viewBox="0 0 24 24"><rect pathLength="1" x="2.5" y="7.5" width="17" height="9" rx="2"/><path pathLength="1" d="M22 11v2M5.5 10.5v3M9 10.5v3M12.5 10.5v3"/></symbol><symbol id="i-bolt" viewBox="0 0 24 24"><path pathLength="1" d="M13 3L5 13.5h6L10 21l9-11h-6z"/></symbol><symbol id="i-file" viewBox="0 0 24 24"><path pathLength="1" d="M6 3h8l5 5v13H6z"/><path pathLength="1" d="M14 3v5h5"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path pathLength="1" d="M3 7a1.5 1.5 0 0 1 1.5-1.5h5l2 2.5h8A1.5 1.5 0 0 1 21 9.5V18a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18z"/></symbol><symbol id="i-image" viewBox="0 0 24 24"><rect pathLength="1" x="3.5" y="4.5" width="17" height="15" rx="2"/><circle pathLength="1" cx="9" cy="9.5" r="1.7"/><path pathLength="1" d="M20.5 15.5L16 11 6 19.5"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path pathLength="1" d="M4 11l8-7 8 7v9H4z"/><path pathLength="1" d="M10 20v-6h4v6"/></symbol><symbol id="i-globe" viewBox="0 0 24 24"><circle pathLength="1" cx="12" cy="12" r="9"/><path pathLength="1" d="M3 12h18"/><path pathLength="1" d="M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path pathLength="1" d="M12 21s-7-6.3-7-11.5a7 7 0 0 1 14 0C19 14.7 12 21 12 21z"/><circle pathLength="1" cx="12" cy="9.5" r="2.5"/></symbol><symbol id="i-rocket" viewBox="0 0 24 24"><path pathLength="1" d="M12 3c3 2 4.5 5.5 4.5 9.5l-2 3.5h-5l-2-3.5C7.5 8.5 9 5 12 3z"/><circle pathLength="1" cx="12" cy="10" r="1.6"/><path pathLength="1" d="M7.6 12.5L5 15v3l3.5-2M16.4 12.5L19 15v3l-3.5-2M10 19.5c.5 1 1.2 1.5 2 1.5s1.5-.5 2-1.5"/></symbol><symbol id="i-bulb" viewBox="0 0 24 24"><path pathLength="1" d="M9 17.5h6M10 21h4"/><path pathLength="1" d="M8.5 14.5A6 6 0 1 1 15.5 14.5c-.6.6-1 1.6-1 2.5v.5h-5V17c0-.9-.4-1.9-1-2.5z"/></symbol><symbol id="i-sparkle" viewBox="0 0 24 24"><path pathLength="1" d="M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7z"/><path pathLength="1" d="M19 15.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z"/></symbol><symbol id="i-sun" viewBox="0 0 24 24"><circle pathLength="1" cx="12" cy="12" r="4"/><path pathLength="1" d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol><symbol id="i-moon" viewBox="0 0 24 24"><path pathLength="1" d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></symbol></svg>
+<template id="kit-character"><svg class="ch" viewBox="0 0 200 270">
+  <ellipse class="ch-shadow" cx="100" cy="258" rx="50" ry="6"/>
+  <g class="ch-all">
+    <g class="ch-leg ch-leg-l"><path class="ch-limb" d="M84 210V240"/><path class="ch-foot ch-line" d="M70 249a14 9 0 0 1 28 0z"/></g>
+    <g class="ch-leg ch-leg-r"><path class="ch-limb" d="M116 210V240"/><path class="ch-foot ch-line" d="M102 249a14 9 0 0 1 28 0z"/></g>
+    <g class="ch-upper">
+      <g class="ch-antenna"><path class="ch-stalk" d="M100 74Q97 58 107 45"/><circle class="ch-bulb ch-line" cx="109" cy="41" r="8"/></g>
+      <g class="ch-sprout"><path class="ch-stalk" d="M100 74V55"/><path class="ch-leaf ch-line" d="M100 58Q86 40 76 50Q86 62 100 58Z"/><path class="ch-leaf ch-line" d="M100 55Q112 34 125 42Q117 57 100 55Z"/></g>
+      <rect class="ch-body ch-line" x="46" y="70" width="108" height="150" rx="54"/>
+      <ellipse class="ch-belly" cx="100" cy="188" rx="32" ry="20"/>
+      <path class="ch-shine" d="M64 112Q65 92 79 83"/>
+      <g class="ch-head">
+        <ellipse class="ch-cheek" cx="69" cy="139" rx="8" ry="4.5"/>
+        <ellipse class="ch-cheek" cx="131" cy="139" rx="8" ry="4.5"/>
+        <g class="ch-eyes">
+          <g class="ch-eye ch-eye-l"><ellipse cx="82" cy="121" rx="6" ry="8"/><circle class="ch-glint" cx="84.2" cy="118" r="2"/></g>
+          <g class="ch-eye ch-eye-r"><ellipse cx="118" cy="121" rx="6" ry="8"/><circle class="ch-glint" cx="120.2" cy="118" r="2"/></g>
+        </g>
+        <path class="ch-eye-happy" d="M75 123Q82 114 89 123M111 123Q118 114 125 123"/>
+        <path class="ch-brow ch-brow-l" d="M74 104Q82 100 90 104"/>
+        <path class="ch-brow ch-brow-r" d="M110 104Q118 100 126 104"/>
+        <g class="ch-glasses"><circle cx="82" cy="121" r="12"/><circle cx="118" cy="121" r="12"/><path d="M94 121h12"/></g>
+        <path class="ch-m ch-m-smile" d="M90 140Q100 150 110 140"/>
+        <path class="ch-m ch-m-flat" d="M91 143H109"/>
+        <path class="ch-m ch-m-sad" d="M90 147Q100 138 110 147"/>
+        <path class="ch-m ch-m-grin" d="M87 138Q100 158 113 138Z"/>
+        <ellipse class="ch-m ch-m-o" cx="100" cy="145" rx="5" ry="6"/>
+        <ellipse class="ch-m ch-m-talk" cx="100" cy="143" rx="8" ry="6"/>
+      </g>
+      <g class="ch-arm ch-arm-l">
+        <path class="ch-limb" d="M52 150L38 172"/>
+        <g class="ch-fore ch-fore-l"><path class="ch-limb" d="M38 172L34 190"/><circle class="ch-hand ch-line" cx="34" cy="195" r="7"/></g>
+      </g>
+      <g class="ch-arm ch-arm-r">
+        <path class="ch-limb" d="M148 150L162 172"/>
+        <g class="ch-fore ch-fore-r"><path class="ch-limb" d="M162 172L166 190"/><circle class="ch-hand ch-line" cx="166" cy="195" r="7"/></g>
+      </g>
+    </g>
+  </g>
+</svg></template>
+<div class="player" style="max-width:1400px"><div class="stage" id="stage">
+<section class="scene active" data-key="gallery" data-dur="60" data-name="Gallery">
+  <h2 class="h2">Icons (85)</h2>
+  <div class="grid"><div class="g"><div><svg class="icon"><use href="#i-check"/></svg></div><span class="mono">check</span></div><div class="g"><div><svg class="icon"><use href="#i-x"/></svg></div><span class="mono">x</span></div><div class="g"><div><svg class="icon"><use href="#i-plus"/></svg></div><span class="mono">plus</span></div><div class="g"><div><svg class="icon"><use href="#i-minus"/></svg></div><span class="mono">minus</span></div><div class="g"><div><svg class="icon"><use href="#i-search"/></svg></div><span class="mono">search</span></div><div class="g"><div><svg class="icon"><use href="#i-refresh"/></svg></div><span class="mono">refresh</span></div><div class="g"><div><svg class="icon"><use href="#i-download"/></svg></div><span class="mono">download</span></div><div class="g"><div><svg class="icon"><use href="#i-upload"/></svg></div><span class="mono">upload</span></div><div class="g"><div><svg class="icon"><use href="#i-send"/></svg></div><span class="mono">send</span></div><div class="g"><div><svg class="icon"><use href="#i-share"/></svg></div><span class="mono">share</span></div><div class="g"><div><svg class="icon"><use href="#i-link"/></svg></div><span class="mono">link</span></div><div class="g"><div><svg class="icon"><use href="#i-filter"/></svg></div><span class="mono">filter</span></div><div class="g"><div><svg class="icon"><use href="#i-play"/></svg></div><span class="mono">play</span></div><div class="g"><div><svg class="icon"><use href="#i-pause"/></svg></div><span class="mono">pause</span></div><div class="g"><div><svg class="icon"><use href="#i-thumbs-up"/></svg></div><span class="mono">thumbs-up</span></div><div class="g"><div><svg class="icon"><use href="#i-arrow-right"/></svg></div><span class="mono">arrow-right</span></div><div class="g"><div><svg class="icon"><use href="#i-arrow-left"/></svg></div><span class="mono">arrow-left</span></div><div class="g"><div><svg class="icon"><use href="#i-arrow-up"/></svg></div><span class="mono">arrow-up</span></div><div class="g"><div><svg class="icon"><use href="#i-arrow-down"/></svg></div><span class="mono">arrow-down</span></div><div class="g"><div><svg class="icon"><use href="#i-arrow-up-right"/></svg></div><span class="mono">arrow-up-right</span></div><div class="g"><div><svg class="icon"><use href="#i-chevron-right"/></svg></div><span class="mono">chevron-right</span></div><div class="g"><div><svg class="icon"><use href="#i-chevron-down"/></svg></div><span class="mono">chevron-down</span></div><div class="g"><div><svg class="icon"><use href="#i-trending-up"/></svg></div><span class="mono">trending-up</span></div><div class="g"><div><svg class="icon"><use href="#i-cursor"/></svg></div><span class="mono">cursor</span></div><div class="g"><div><svg class="icon"><use href="#i-user"/></svg></div><span class="mono">user</span></div><div class="g"><div><svg class="icon"><use href="#i-users"/></svg></div><span class="mono">users</span></div><div class="g"><div><svg class="icon"><use href="#i-smile"/></svg></div><span class="mono">smile</span></div><div class="g"><div><svg class="icon"><use href="#i-heart"/></svg></div><span class="mono">heart</span></div><div class="g"><div><svg class="icon"><use href="#i-star"/></svg></div><span class="mono">star</span></div><div class="g"><div><svg class="icon"><use href="#i-chat"/></svg></div><span class="mono">chat</span></div><div class="g"><div><svg class="icon"><use href="#i-mail"/></svg></div><span class="mono">mail</span></div><div class="g"><div><svg class="icon"><use href="#i-bell"/></svg></div><span class="mono">bell</span></div><div class="g"><div><svg class="icon"><use href="#i-phone"/></svg></div><span class="mono">phone</span></div><div class="g"><div><svg class="icon"><use href="#i-mic"/></svg></div><span class="mono">mic</span></div><div class="g"><div><svg class="icon"><use href="#i-video"/></svg></div><span class="mono">video</span></div><div class="g"><div><svg class="icon"><use href="#i-music"/></svg></div><span class="mono">music</span></div><div class="g"><div><svg class="icon"><use href="#i-lock"/></svg></div><span class="mono">lock</span></div><div class="g"><div><svg class="icon"><use href="#i-unlock"/></svg></div><span class="mono">unlock</span></div><div class="g"><div><svg class="icon"><use href="#i-shield"/></svg></div><span class="mono">shield</span></div><div class="g"><div><svg class="icon"><use href="#i-shield-check"/></svg></div><span class="mono">shield-check</span></div><div class="g"><div><svg class="icon"><use href="#i-key"/></svg></div><span class="mono">key</span></div><div class="g"><div><svg class="icon"><use href="#i-eye"/></svg></div><span class="mono">eye</span></div><div class="g"><div><svg class="icon"><use href="#i-alert"/></svg></div><span class="mono">alert</span></div><div class="g"><div><svg class="icon"><use href="#i-info"/></svg></div><span class="mono">info</span></div><div class="g"><div><svg class="icon"><use href="#i-chart-bar"/></svg></div><span class="mono">chart-bar</span></div><div class="g"><div><svg class="icon"><use href="#i-chart-line"/></svg></div><span class="mono">chart-line</span></div><div class="g"><div><svg class="icon"><use href="#i-pie"/></svg></div><span class="mono">pie</span></div><div class="g"><div><svg class="icon"><use href="#i-target"/></svg></div><span class="mono">target</span></div><div class="g"><div><svg class="icon"><use href="#i-clock"/></svg></div><span class="mono">clock</span></div><div class="g"><div><svg class="icon"><use href="#i-calendar"/></svg></div><span class="mono">calendar</span></div><div class="g"><div><svg class="icon"><use href="#i-grid"/></svg></div><span class="mono">grid</span></div><div class="g"><div><svg class="icon"><use href="#i-layers"/></svg></div><span class="mono">layers</span></div><div class="g"><div><svg class="icon"><use href="#i-cart"/></svg></div><span class="mono">cart</span></div><div class="g"><div><svg class="icon"><use href="#i-card"/></svg></div><span class="mono">card</span></div><div class="g"><div><svg class="icon"><use href="#i-wallet"/></svg></div><span class="mono">wallet</span></div><div class="g"><div><svg class="icon"><use href="#i-dollar"/></svg></div><span class="mono">dollar</span></div><div class="g"><div><svg class="icon"><use href="#i-coin"/></svg></div><span class="mono">coin</span></div><div class="g"><div><svg class="icon"><use href="#i-gift"/></svg></div><span class="mono">gift</span></div><div class="g"><div><svg class="icon"><use href="#i-tag"/></svg></div><span class="mono">tag</span></div><div class="g"><div><svg class="icon"><use href="#i-trophy"/></svg></div><span class="mono">trophy</span></div><div class="g"><div><svg class="icon"><use href="#i-flag"/></svg></div><span class="mono">flag</span></div><div class="g"><div><svg class="icon"><use href="#i-bookmark"/></svg></div><span class="mono">bookmark</span></div><div class="g"><div><svg class="icon"><use href="#i-code"/></svg></div><span class="mono">code</span></div><div class="g"><div><svg class="icon"><use href="#i-terminal"/></svg></div><span class="mono">terminal</span></div><div class="g"><div><svg class="icon"><use href="#i-database"/></svg></div><span class="mono">database</span></div><div class="g"><div><svg class="icon"><use href="#i-server"/></svg></div><span class="mono">server</span></div><div class="g"><div><svg class="icon"><use href="#i-cloud"/></svg></div><span class="mono">cloud</span></div><div class="g"><div><svg class="icon"><use href="#i-cpu"/></svg></div><span class="mono">cpu</span></div><div class="g"><div><svg class="icon"><use href="#i-robot"/></svg></div><span class="mono">robot</span></div><div class="g"><div><svg class="icon"><use href="#i-settings"/></svg></div><span class="mono">settings</span></div><div class="g"><div><svg class="icon"><use href="#i-sliders"/></svg></div><span class="mono">sliders</span></div><div class="g"><div><svg class="icon"><use href="#i-wifi"/></svg></div><span class="mono">wifi</span></div><div class="g"><div><svg class="icon"><use href="#i-battery"/></svg></div><span class="mono">battery</span></div><div class="g"><div><svg class="icon"><use href="#i-bolt"/></svg></div><span class="mono">bolt</span></div><div class="g"><div><svg class="icon"><use href="#i-file"/></svg></div><span class="mono">file</span></div><div class="g"><div><svg class="icon"><use href="#i-folder"/></svg></div><span class="mono">folder</span></div><div class="g"><div><svg class="icon"><use href="#i-image"/></svg></div><span class="mono">image</span></div><div class="g"><div><svg class="icon"><use href="#i-home"/></svg></div><span class="mono">home</span></div><div class="g"><div><svg class="icon"><use href="#i-globe"/></svg></div><span class="mono">globe</span></div><div class="g"><div><svg class="icon"><use href="#i-pin"/></svg></div><span class="mono">pin</span></div><div class="g"><div><svg class="icon"><use href="#i-rocket"/></svg></div><span class="mono">rocket</span></div><div class="g"><div><svg class="icon"><use href="#i-bulb"/></svg></div><span class="mono">bulb</span></div><div class="g"><div><svg class="icon"><use href="#i-sparkle"/></svg></div><span class="mono">sparkle</span></div><div class="g"><div><svg class="icon"><use href="#i-sun"/></svg></div><span class="mono">sun</span></div><div class="g"><div><svg class="icon"><use href="#i-moon"/></svg></div><span class="mono">moon</span></div></div>
+  <h2 class="h2" style="margin-top:3cqw">Poses</h2>
+  <div class="chars"><div class="g"><div><div data-character data-now="idle"></div></div><span class="mono">idle</span></div><div class="g"><div><div data-character data-now="wave"></div></div><span class="mono">wave</span></div><div class="g"><div><div data-character data-now="point"></div></div><span class="mono">point</span></div><div class="g"><div><div data-character data-now="point-up"></div></div><span class="mono">point-up</span></div><div class="g"><div><div data-character data-now="point-left"></div></div><span class="mono">point-left</span></div><div class="g"><div><div data-character data-now="present"></div></div><span class="mono">present</span></div><div class="g"><div><div data-character data-now="cheer"></div></div><span class="mono">cheer</span></div><div class="g"><div><div data-character data-now="shrug"></div></div><span class="mono">shrug</span></div><div class="g"><div><div data-character data-now="think"></div></div><span class="mono">think</span></div><div class="g"><div><div data-character data-now="type"></div></div><span class="mono">type</span></div><div class="g"><div><div data-character data-now="clap"></div></div><span class="mono">clap</span></div><div class="g"><div><div data-character data-now="jump"></div></div><span class="mono">jump</span></div></div>
+  <h2 class="h2" style="margin-top:3cqw">Moods &amp; looks</h2>
+  <div class="chars"><div class="g"><div><div data-character data-now="happy" style="--shirt:var(--accent-2)"></div></div><span class="mono">happy</span></div><div class="g"><div><div data-character data-now="excited" style="--shirt:var(--accent-2)"></div></div><span class="mono">excited</span></div><div class="g"><div><div data-character data-now="laugh" style="--shirt:var(--accent-2)"></div></div><span class="mono">laugh</span></div><div class="g"><div><div data-character data-now="neutral" style="--shirt:var(--accent-2)"></div></div><span class="mono">neutral</span></div><div class="g"><div><div data-character data-now="sad" style="--shirt:var(--accent-2)"></div></div><span class="mono">sad</span></div><div class="g"><div><div data-character data-now="surprised" style="--shirt:var(--accent-2)"></div></div><span class="mono">surprised</span></div><div class="g"><div><div data-character data-now="angry" style="--shirt:var(--accent-2)"></div></div><span class="mono">angry</span></div><div class="g"><div><div data-character data-now="wink" style="--shirt:var(--accent-2)"></div></div><span class="mono">wink</span></div><div class="g"><div><div data-character data-now="talk" style="--shirt:var(--accent-2)"></div></div><span class="mono">talk</span></div>
+    <div class="g"><div><div data-character data-top="sprout" data-now="happy" style="--shirt:#3D7A5A"></div></div><span class="mono">top=sprout</span></div>
+    <div class="g"><div><div data-character data-top="none" data-acc="glasses" data-now="neutral look-left" style="--shirt:#E9B949"></div></div><span class="mono">top=none glasses</span></div>
+    <div class="g"><div><div data-character data-now="excited" style="--shirt:#8C6BD8;--bulb:#FF8F8F"></div></div><span class="mono">--shirt --bulb</span></div>
+    <div class="g"><div><div data-character class="flip" data-now="point" style="--shirt:#33415C"></div></div><span class="mono">flip + point</span></div></div>
+</section></div></div>
+<script id="kit-engine">
+/* Motion engine. Synced into each video by `node kit.mjs sync video.html`.
+ *
+ * Rule: everything visual is a pure function of scene time, and time comes only
+ * from requestAnimationFrame timestamps. So browser playback, seeking, and the
+ * frame-by-frame recorder (record_video.py) always agree.
+ *
+ * Features (all declarative attributes; see SKILL.md / reference/ui-kit.md):
+ *   scenes        .scene[data-dur][data-key][data-name], data-in / data-out transitions
+ *   counters      data-count="1200" data-count-from data-count-at data-count-dur data-count-dec data-count-prefix/suffix
+ *   tweens        data-tween="--p 0 100 .5 1.2 out; --x -20 0 0 .8 back"   (name from to at dur [ease])
+ *   timelines     data-timeline="0 happy, 1.2 surprised wave, 3 point"  -> sets data-now
+ *   typing        data-type="text" data-type-at="1" data-type-cps="18"
+ *   cursor        .cursor[data-path="0 @85/110, .9 #buy click, 1.8 #next"] data-move=".7" data-click-sfx="click"
+ *   arrows        path[data-arrow] gets an auto arrowhead;  svg[data-connect="#a #b"] draws a connector
+ *   stagger       data-stagger=".3 .1"  -> children get --d = .3 + i*.1
+ *   characters    [data-character] gets the rigged SVG from <template id="kit-character">
+ *   confetti      .confetti[data-confetti="1.2"] data-pieces="60" data-origin="50/60"
+ *   sfx preview   data-sfx cues play from ./sfx/*.wav (node sfx.mjs lib video.html)
+ * API: window.__motion = { total, starts, durs, seek(t), play(), pause(), time }
+ */
+(() => {
+  'use strict';
+  const NS = 'http://www.w3.org/2000/svg';
+  const stage = document.getElementById('stage') || document.querySelector('.stage');
+  if (!stage) { console.error('motion: no #stage element'); return; }
+  const scenes = [...stage.querySelectorAll('.scene')];
+  const D = scenes.map(s => parseFloat(s.dataset.dur) || 0);
+  const S = []; let TOTAL = 0; for (const d of D) { S.push(TOTAL); TOTAL += d; }
+  scenes.forEach((s, i) => s.style.setProperty('--dur', D[i] + 's'));
+
+  const $ = id => document.getElementById(id);
+  const clamp01 = x => (x < 0 ? 0 : x > 1 ? 1 : x);
+  const parseT = v => { const m = String(v ?? '').trim().match(/^(-?\d*\.?\d+)\s*(ms|s)?$/); return m ? parseFloat(m[1]) / (m[2] === 'ms' ? 1000 : 1) : null; };
+  const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  const ownD = el => parseT(el.style.getPropertyValue('--d'));            // own inline --d only (matches sfx.mjs)
+  const within = (s, sel) => [...(s.matches(sel) ? [s] : []), ...s.querySelectorAll(sel)];
+  const EASE = {
+    linear: x => x,
+    in: x => x * x * x,
+    out: x => 1 - (1 - x) ** 3,
+    inout: x => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2),
+    back: x => 1 + 2.70158 * (x - 1) ** 3 + 1.70158 * (x - 1) ** 2,
+    spring: x => (x >= 1 ? 1 : 1 - Math.cos(x * Math.PI * 4.5) * Math.exp(-x * 6)),
+  };
+  const ease = n => EASE[n] || EASE.out;
+  const rng = seed => () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296; };
+
+  // ---------- one-time setup ----------
+  const charTpl = $('kit-character');
+  document.querySelectorAll('[data-character]').forEach(el => {
+    el.classList.add('char');
+    if (el.querySelector('svg.ch')) return;
+    if (!charTpl) { console.error('motion: <template id="kit-character"> missing. Run: node kit.mjs sync <file>'); return; }
+    el.prepend(charTpl.content.cloneNode(true));
+  });
+
+  document.querySelectorAll('[data-stagger]').forEach(p => {
+    const [d0, gap] = p.dataset.stagger.trim().split(/\s+/).map(parseT);
+    [...p.children].forEach((c, i) => {
+      if (!c.style.getPropertyValue('--d')) c.style.setProperty('--d', ((d0 || 0) + i * (gap ?? 0.08)).toFixed(3) + 's');
+    });
+  });
+
+  const copyTiming = (from, to) => { for (const p of ['--d', '--dd']) { const v = from.style.getPropertyValue(p); if (v) to.style.setProperty(p, v); } };
+  function addHead(path, size) {
+    let head = path.__head;
+    if (!head) {
+      head = document.createElementNS(NS, 'path');
+      head.setAttribute('class', 'arrow-head');
+      path.after(head); path.__head = head; copyTiming(path, head);
+    }
+    if (!path.hasAttribute('pathLength')) path.setAttribute('pathLength', '1');
+    const L = path.getTotalLength(); if (!L) return;
+    const e = path.getPointAtLength(L), b = path.getPointAtLength(Math.max(0, L - Math.min(L, 3)));
+    const a = Math.atan2(e.y - b.y, e.x - b.x), s = size || parseFloat(path.dataset.arrow) || 12;
+    const pt = da => (e.x - s * Math.cos(a + da)).toFixed(2) + ' ' + (e.y - s * Math.sin(a + da)).toFixed(2);
+    head.setAttribute('d', `M${pt(0.55)}L${e.x.toFixed(2)} ${e.y.toFixed(2)}L${pt(-0.55)}`);
+  }
+  document.querySelectorAll('path[data-arrow]').forEach(p => addHead(p));
+
+  // Position of an element relative to the stage, ignoring CSS transforms (entrances move things).
+  function box(el) {
+    let x = 0, y = 0, e = el;
+    while (e && e !== stage && e.offsetParent !== undefined) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; }
+    if (e !== stage) { const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect(); return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height }; }
+    return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+  }
+  const find = q => { const el = stage.querySelector(q); if (!el) console.error('motion: target not found:', q); return el; };
+
+  // ---------- per-scene declarations ----------
+  const per = fn => scenes.map((s, i) => fn(s, i));
+
+  const counters = per(s => within(s, '[data-count]').map(el => ({
+    el, to: +el.dataset.count, from: +(el.dataset.countFrom || 0), at: parseT(el.dataset.countAt) ?? ownD(el) ?? 0,
+    dur: parseT(el.dataset.countDur) || 1, dec: +(el.dataset.countDec || 0),
+    pre: el.dataset.countPrefix || '', suf: el.dataset.countSuffix || '', ease: ease(el.dataset.countEase) })));
+
+  const tweens = per(s => {
+    const groups = new Map();
+    for (const el of within(s, '[data-tween]')) {
+      for (const spec of el.dataset.tween.split(';').map(x => x.trim()).filter(Boolean)) {
+        const [name, from, to, at, dur, e] = spec.split(/\s+/);
+        const key = el, list = groups.get(key) || new Map();
+        const arr = list.get(name) || [];
+        arr.push({ from: +from, to: +to, at: parseT(at) || 0, dur: parseT(dur) || 1, ease: ease(e) });
+        list.set(name, arr.sort((a, b) => a.at - b.at)); groups.set(key, list);
+      }
+    }
+    return [...groups].flatMap(([el, m]) => [...m].map(([name, segs]) => ({ el, name, segs })));
+  });
+
+  const typers = per(s => within(s, '[data-type]').map(el => {
+    const text = el.dataset.type || el.textContent.trim().replace(/\s+/g, " ");
+    return { el, text, at: parseT(el.dataset.typeAt) ?? ownD(el) ?? 0, cps: +el.dataset.typeCps || 18, n: -1 };
+  }));
+
+  const timelines = per(s => within(s, '[data-timeline]').map(el => ({
+    el, base: el.dataset.now || '', cur: null,
+    keys: el.dataset.timeline.split(',').map(x => x.trim()).filter(Boolean).map(x => {
+      const m = x.match(/^(\S+)\s*(.*)$/); return { at: parseT(m[1]) || 0, now: m[2].trim() };
+    }).sort((a, b) => a.at - b.at) })));
+
+  const CURSOR_SVG = '<svg viewBox="0 0 24 26"><path d="M2 1.5V21l5.4-5.1 3.5 7.6 3.6-1.6-3.4-7.5 7.4-.2z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+  const cursors = per(s => within(s, '.cursor[data-path]').map(el => {
+    if (!el.querySelector('svg')) el.insertAdjacentHTML('afterbegin', CURSOR_SVG);
+    if (!el.querySelector('.cursor-ripple')) el.insertAdjacentHTML('beforeend', '<i class="cursor-ripple"></i>');
+    const steps = el.dataset.path.split(',').map(x => x.trim()).filter(Boolean).map(x => {
+      const [at, target, ...flags] = x.split(/\s+/); return { at: parseT(at) || 0, target, click: flags.includes('click') };
+    });
+    return { el, steps, move: parseT(el.dataset.move) || 0.7, ripple: el.querySelector('.cursor-ripple'), pts: [] };
+  }));
+
+  const links = per(s => within(s, 'svg[data-connect]'));
+
+  const confetti = per((s, si) => within(s, '[data-confetti]').map((el, k) => {
+    const r = rng(9973 * (si + 1) + 131 * (k + 1)), n = +el.dataset.pieces || 50;
+    const [ox, oy] = (el.dataset.origin || '50/50').split('/').map(Number);
+    const colors = (el.dataset.colors || 'var(--accent) var(--accent-2) var(--good) var(--warn,#E9B949) var(--ink)').split(/\s+(?![^(]*\))/);
+    el.textContent = '';
+    const bits = Array.from({ length: n }, (_, j) => {
+      const p = document.createElement('i');
+      if (r() < 0.3) p.className = 'c';
+      p.style.background = colors[j % colors.length];
+      el.appendChild(p);
+      const ang = (-90 + (r() - 0.5) * 120) * Math.PI / 180, sp = 45 + r() * 70;
+      return { p, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, vr: (r() - 0.5) * 1100, r0: r() * 360, f: 6 + r() * 8 };
+    });
+    return { el, at: parseT(el.dataset.confetti) ?? ownD(el) ?? 0, ox, oy, bits };
+  }));
+
+  // SFX preview cues. Same timing rules as sfx.mjs:
+  //   scene start + (data-sfx-at ?? data-type-at ?? own inline --d ?? 0) + @offset;  cursor clicks via data-click-sfx
+  const sfxDir = stage.dataset.sfxDir || 'sfx/';
+  const cues = per((s, i) => {
+    const out = [];
+    for (const e of within(s, '[data-sfx]')) {
+      const at = parseT(e.dataset.sfxAt) ?? (e.hasAttribute('data-type') ? parseT(e.dataset.typeAt) : null) ?? ownD(e) ?? 0;
+      const typeDur = e.hasAttribute('data-type') ? (e.dataset.type || e.textContent.trim().replace(/\s+/g, " ")).length / (+e.dataset.typeCps || 18) : null;
+      for (const x of e.dataset.sfx.split(',').map(v => v.trim()).filter(Boolean)) {
+        const [n, o] = x.split('@');
+        out.push({ at: at + (parseT(o) || 0), name: n.trim(), vol: +(e.dataset.sfxVol || 1), pitch: +(e.dataset.sfxPitch || 0), dur: parseT(e.dataset.sfxDur) ?? typeDur });
+      }
+    }
+    for (const c of cursors[i]) {
+      const snd = c.el.dataset.clickSfx; if (!snd || snd === 'none') continue;
+      for (const st of c.steps) if (st.click) out.push({ at: st.at, name: snd, vol: +(c.el.dataset.sfxVol || 1), pitch: 0, dur: null });
+    }
+    return out;
+  });
+  try {
+    const sheet = $('sfx-cues');
+    if (sheet) for (const c of JSON.parse(sheet.textContent)) {
+      const t0 = parseT(c.t), si = t0 != null ? sceneAtT(t0) : scenes.findIndex(s => s.dataset.key === c.scene);
+      if (si >= 0) cues[si].push({ at: t0 != null ? t0 - S[si] : parseT(c.at) || 0, name: c.sfx || c.name, vol: +(c.vol ?? 1), pitch: +(c.pitch || 0), dur: parseT(c.dur) });
+    }
+  } catch (e) { console.warn('sfx-cues:', e.message); }
+  const audible = !navigator.webdriver;
+  function playSfx(c) {
+    if (!audible) return;
+    const a = new Audio(/\.\w+$/.test(c.name) ? c.name : sfxDir + c.name + '.wav');
+    a.volume = Math.min(1, c.vol); a.preservesPitch = false; a.playbackRate = 2 ** (c.pitch / 12);
+    a.play().catch(() => {});
+    if (c.dur) setTimeout(() => a.pause(), c.dur * 1000);
+  }
+
+  // ---------- layout (needs the scene visible; re-run on resize) ----------
+  function layoutLinks(i) {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    for (const svg of links[i]) {
+      const [a, b] = svg.dataset.connect.trim().split(/\s+/).map(find);
+      if (!a || !b) continue;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      let path = svg.querySelector('path.link-path');
+      if (!path) {
+        path = document.createElementNS(NS, 'path');
+        path.setAttribute('class', 'link-path'); path.setAttribute('pathLength', '1');
+        copyTiming(svg, path); svg.appendChild(path);
+      }
+      const A = box(a), B = box(b), gap = W * 0.008, bend = parseFloat(svg.dataset.bend ?? 0.5);
+      const ax = A.x + A.w / 2, ay = A.y + A.h / 2, bx = B.x + B.w / 2, by = B.y + B.h / 2;
+      let p1, p2, c1, c2;
+      if (Math.abs(bx - ax) >= Math.abs(by - ay)) {
+        const dir = bx >= ax ? 1 : -1;
+        p1 = [ax + dir * (A.w / 2 + gap), ay]; p2 = [bx - dir * (B.w / 2 + gap), by];
+        const k = (p2[0] - p1[0]) * bend; c1 = [p1[0] + k, p1[1]]; c2 = [p2[0] - k, p2[1]];
+      } else {
+        const dir = by >= ay ? 1 : -1;
+        p1 = [ax, ay + dir * (A.h / 2 + gap)]; p2 = [bx, by - dir * (B.h / 2 + gap)];
+        const k = (p2[1] - p1[1]) * bend; c1 = [p1[0], p1[1] + k]; c2 = [p2[0], p2[1] - k];
+      }
+      const f = p => p.map(v => v.toFixed(1)).join(' ');
+      path.setAttribute('d', `M${f(p1)}C${f(c1)} ${f(c2)} ${f(p2)}`);
+      if (svg.dataset.head !== 'none') addHead(path, W * 0.012);
+    }
+  }
+  function layoutCursors(i) {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    for (const c of cursors[i]) c.pts = c.steps.map(st => {
+      if (st.target.startsWith('@')) { const [px, py] = st.target.slice(1).split('/').map(Number); return [px / 100 * W, py / 100 * H]; }
+      const el = find(st.target); st.el = el;
+      if (!el) return [W / 2, H / 2];
+      const b = box(el); return [b.x + b.w / 2, b.y + b.h / 2];
+    });
+  }
+  function layout(i) {
+    scenes[i].querySelectorAll('path[data-arrow]').forEach(p => addHead(p));
+    layoutLinks(i); layoutCursors(i);
+  }
+
+  // ---------- state ----------
+  let idx = -1, t = 0, last = null, playing = !window.__PAUSE_AUTOPLAY, prevEl = 0;
+  const bornAt = new WeakMap();      // animations started by a timeline change -> their start time
+  function sceneAtT(x) { let i = 0; while (i < D.length - 1 && x >= S[i + 1]) i++; return i; }
+
+  function enter(i) {
+    for (const tl of timelines[i]) { tl.el.dataset.now = tl.base; tl.cur = tl.base; }
+    for (const ty of typers[i]) ty.n = -1;
+    scenes.forEach(s => s.classList.remove('active'));
+    void stage.offsetWidth;                         // reflow so keyframes restart on re-entry
+    scenes[i].classList.add('active');
+    idx = i; prevEl = -1e-6;
+    layout(i);
+  }
+
+  function render() {
+    const el = t - S[idx], sc = scenes[idx], W = stage.clientWidth, H = stage.clientHeight;
+
+    for (const c of counters[idx]) {
+      const p = c.ease(clamp01((el - c.at) / c.dur));
+      c.el.textContent = c.pre + (c.from + (c.to - c.from) * p).toFixed(c.dec) + c.suf;
+    }
+    for (const tw of tweens[idx]) {
+      let seg = tw.segs[0];
+      for (const s of tw.segs) if (el >= s.at) seg = s;
+      const v = seg.from + (seg.to - seg.from) * seg.ease(clamp01((el - seg.at) / seg.dur));
+      tw.el.style.setProperty(tw.name, +v.toFixed(4));
+    }
+    for (const ty of typers[idx]) {
+      const n = Math.max(0, Math.min(ty.text.length, Math.floor((el - ty.at) * ty.cps + 1e-6)));
+      if (n !== ty.n) { ty.el.textContent = ty.text.slice(0, n); ty.n = n; }
+      ty.el.classList.toggle('typing', el >= ty.at - 0.4 && n < ty.text.length);
+    }
+    for (const tl of timelines[idx]) {
+      let v = tl.base, since = 0;
+      for (const k of tl.keys) if (el >= k.at) { v = k.now; since = k.at; }
+      if (v !== tl.cur) {
+        const before = new Set(sc.getAnimations({ subtree: true }));
+        tl.el.dataset.now = v; tl.cur = v;
+        for (const a of sc.getAnimations({ subtree: true })) if (!before.has(a)) bornAt.set(a, S[idx] + since);
+      }
+    }
+    for (const c of cursors[idx]) renderCursor(c, el);
+    for (const cf of confetti[idx]) {
+      const dt = el - cf.at;
+      cf.el.style.visibility = dt < 0 ? 'hidden' : 'visible';
+      if (dt < 0) continue;
+      const k = 1.6, drag = (1 - Math.exp(-k * dt)) / k, aspect = H / W, fade = 1 - clamp01((dt - 1.8) / 0.7);
+      for (const b of cf.bits) {
+        const x = cf.ox + b.vx * drag, y = cf.oy * aspect + b.vy * drag + 0.5 * 45 * dt * dt;
+        b.p.style.transform = `translate(${x.toFixed(2)}cqw,${y.toFixed(2)}cqw) rotate(${(b.r0 + b.vr * dt).toFixed(1)}deg) scaleY(${Math.cos(dt * b.f + b.r0).toFixed(3)})`;
+        b.p.style.opacity = fade;
+      }
+    }
+    if (playing) for (const c of cues[idx]) if (c.at > prevEl && c.at <= el) playSfx(c);
+    prevEl = el;
+
+    if (seekEl) seekEl.value = t;
+    if (timeEl) timeEl.textContent = fmt(t) + ' / ' + fmt(TOTAL);
+    if (playBtn) playBtn.textContent = playing ? 'Pause' : 'Play';
+  }
+
+  function renderCursor(c, el) {
+    const { steps, pts } = c; if (!pts.length) return;
+    let x = pts[0][0], y = pts[0][1];
+    for (let k = 1; k < steps.length; k++) {
+      const s0 = Math.max(steps[k - 1].at, steps[k].at - c.move);
+      if (el < s0) break;
+      const p = EASE.inout(clamp01((el - s0) / Math.max(1e-3, steps[k].at - s0)));
+      const [x0, y0] = pts[k - 1], [x1, y1] = pts[k], arc = Math.sin(Math.PI * p) * 0.08;
+      x = x0 + (x1 - x0) * p - (y1 - y0) * arc; y = y0 + (y1 - y0) * p + (x1 - x0) * arc;
+    }
+    let scale = 1, ripple = null;
+    const pressed = new Set();
+    for (const st of steps) {
+      if (!st.click || el < st.at) continue;
+      const dt = el - st.at;
+      if (dt < 0.2) { scale = 1 - 0.18 * Math.sin(Math.PI * dt / 0.2); if (st.el) pressed.add(st.el); }
+      if (dt < 0.6) ripple = dt;
+    }
+    for (const st of steps) if (st.el) st.el.classList.toggle('pressed', pressed.has(st.el));
+    c.el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${scale.toFixed(3)})`;
+    if (c.ripple) {
+      c.ripple.style.opacity = ripple == null ? 0 : (1 - ripple / 0.6).toFixed(3);
+      c.ripple.style.transform = `scale(${ripple == null ? 0.3 : (0.3 + EASE.out(ripple / 0.6) * 1.1).toFixed(3)})`;
+    }
+  }
+
+  // Seek: rebuild the scene at time x; CSS animations are placed at their matching offsets.
+  function seek(x) {
+    t = Math.max(0, Math.min(TOTAL, x));
+    const i = sceneAtT(t);
+    enter(i);
+    prevEl = t - S[i];                // do not replay sound cues we jumped over
+    render();
+    for (const a of scenes[i].getAnimations({ subtree: true })) {
+      a.currentTime = (t - (bornAt.get(a) ?? S[i])) * 1000;
+      playing ? a.play() : a.pause();
+    }
+  }
+  const setPlaying = p => {
+    playing = p; last = null;
+    for (const a of scenes[idx].getAnimations({ subtree: true })) p ? a.play() : a.pause();
+    render();
+  };
+
+  function tick(ts) {
+    if (last === null) last = ts;
+    const dt = (ts - last) / 1000; last = ts;
+    if (playing) {
+      t += dt;
+      if (t >= TOTAL) { t = TOTAL; playing = false; }   // hold the last frame
+      const i = sceneAtT(t);
+      if (i !== idx) enter(i);
+    }
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  // ---------- controls (all optional) ----------
+  const seekEl = $('seek'), timeEl = $('time'), playBtn = $('play');
+  if (seekEl) { seekEl.max = TOTAL; seekEl.step = 0.01; seekEl.oninput = () => seek(+seekEl.value); }
+  if (playBtn) playBtn.onclick = () => { if (t >= TOTAL) seek(0); setPlaying(!playing); };
+  if ($('prev')) $('prev').onclick = () => seek(S[Math.max(0, idx - (t - S[idx] < 0.5 ? 1 : 0))]);
+  if ($('next')) $('next').onclick = () => seek(S[Math.min(scenes.length - 1, idx + 1)]);
+  if ($('replay')) $('replay').onclick = () => { seek(0); setPlaying(true); };
+  if ($('fs')) $('fs').onclick = () => (document.fullscreenElement ? document.exitFullscreen() : stage.requestFullscreen());
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input,textarea')) return;
+    if (e.code === 'Space') { e.preventDefault(); if (t >= TOTAL) seek(0); setPlaying(!playing); }
+    if (e.code === 'ArrowRight') seek(S[Math.min(scenes.length - 1, idx + 1)]);
+    if (e.code === 'ArrowLeft') seek(S[Math.max(0, idx - (t - S[idx] < 0.5 ? 1 : 0))]);
+  });
+
+  new ResizeObserver(() => { if (idx >= 0) { layout(idx); render(); } }).observe(stage);
+  if (document.fonts) document.fonts.ready.then(() => { if (idx >= 0) { layout(idx); render(); } });
+
+  window.__motion = {
+    total: TOTAL, starts: S, durs: D, seek,
+    play: () => setPlaying(true), pause: () => setPlaying(false),
+    get time() { return t; },
+  };
+  enter(0);
+  render();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body></html>

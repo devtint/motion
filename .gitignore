@@ -1,0 +1,4 @@
+# Bundled FFmpeg binaries exceed GitHub's 100 MB limit; download locally (see README)
+tools/ffmpeg-*/
+__pycache__/
+*.pyc
